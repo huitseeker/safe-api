@@ -5,54 +5,42 @@ use typenum::{Bit, B0, B1};
 use typenum::{Same, Sum, Unsigned};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
+/// Note the PhantomData avoids allocating actual data
 pub struct Absorb<N: Unsigned>(PhantomData(N));
 pub struct Squeeze<N: Unsigned>(PhantomData(N));
 
 /// Our trait for common treatment of both patterns
 // TODO: make a sealed trait
-trait IOWord {
-    type Direction: Bit;
-    type Length: Unsigned;
-};
+trait IOWord {};
 
-// Convenience aliases for projections
-type Len<T> = <T as IOWord>::Length;
-type Dir<T> = <T as IOWord>::Direction;
-
-impl<N: Unsigned> IOWord for Absorb<N> {
-    type Direction = B1; // arbitrary, but opposite <Squeeze<N> as IOWord>::Direction
-    type Length = N;
-};
-
-impl<N: Unsigned> IOWord for Squeeze<N> {
-    type Direction = B0;
-    type Length = N;
-};
+impl<N: Unsigned> IOWord for Absorb<N> {};
+impl<N: Unsigned> IOWord for Squeeze<N> {};
 
 /// Our merge operator for same-type words
 // TODO: make a sealed trait
-trait MergeLength<Other: IOWord>: IOWord {
-    type Output: Unsigned;
+trait Merge<Other: IOWord>: IOWord {
+    type Output: IOWord;
 }
 
 // Convenience alias for projection
-type MergedLen<T, U> = <T as Merge<U>>::Output;
+type Mer<T, U> = <T as Merge<U>>::Output;
 
 // Merge operator impl
-impl<T: IOWord> Merge<Other> for T 
+impl<Absorb<N>> Merge<Absorb<M>> for T 
 where 
-    Other: IOWord,
-    Dir<T> : Same<Dir<Other>>
+    N: Unsigned,
+    M: Unsigned,
 {
-    type Output = Sum<Len<T>, Len<Other>>;
+    type Output = Absorb<Sum<N, M>>;
 }
 
-// type Dual, used for alternation (TODO: Figure out if maybe we'd use B0/B1 instead)
-trait ComputeDual {
-    type Output;
+impl<Squeeze<N>> Merge<Squeeze<M>> for T 
+where 
+    N: Unsigned,
+    M: Unsigned,
+{
+    type Output = Squeeze<Sum<N, M>>;
 }
-type Dual<S> = <S as ComputeDual>::Output;
-
 
 // type-level HList
 trait List {}
@@ -63,6 +51,20 @@ struct Cons<Item, Next: List> {
     _phantom: PhantomData<(Item, Next)>
 }
 struct Nil;
+
+// an IOPattern is a List of IOWords .. (TODO: does this need elaboration?)
+
+// Normalizing an IOPattern with Merge
+type Normalize {
+    type Output: List;
+}
+
+// TODO: recursion !?
+
+// Emptying an IOPattern
+type Consume<Op: IOWord> {
+    type Output: List;
+}
 
 #[cfg(test)]
 mod tests {
