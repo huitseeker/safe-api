@@ -1,13 +1,13 @@
 pub use typenum;
 
+use core::ops::Add;
 use std::marker::PhantomData;
-use typenum::{Bit, B0, B1};
-use typenum::{Same, Sum, Unsigned};
+use typenum::{Sum, Unsigned};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
-/// Note the PhantomData avoids allocating actual data
-pub struct Absorb<N: Unsigned>(PhantomData(N));
-pub struct Squeeze<N: Unsigned>(PhantomData(N));
+/// Note the phantom type avoids allocating actual data
+pub struct Absorb<N>(PhantomData<N>);
+pub struct Squeeze<N>(PhantomData<N>);
 
 /// Our trait for common treatment of both patterns
 // TODO: make a sealed trait
@@ -19,32 +19,36 @@ impl<N: Unsigned> IOWord for Squeeze<N> {}
 /// Our merge operator for same-type words
 // TODO: make a sealed trait
 trait Merge<Other: IOWord>: IOWord {
-    type Output: IOWord;
+    type Output;
 }
 
 // Convenience alias for projection
+#[allow(dead_code)]
 type Mer<T, U> = <T as Merge<U>>::Output;
 
 // Merge operator impl
-impl Merge<Absorb<M>> for Absorb<N>
+impl<N, M> Merge<Absorb<M>> for Absorb<N>
 where
     N: Unsigned,
     M: Unsigned,
+    N: Add<M>, // present for all reasonable values in practice
 {
     type Output = Absorb<Sum<N, M>>;
 }
 
-impl Merge<Squeeze<M>> for Squeeze<N>
+impl<N, M> Merge<Squeeze<M>> for Squeeze<N>
 where
     N: Unsigned,
     M: Unsigned,
+    N: Add<M>, // present for all reasonable values in practice
 {
     type Output = Squeeze<Sum<N, M>>;
 }
 
-// type-level HList
+// type-level HList, specializable to IOWord
+// using  a sealed trait
 trait List {}
-impl<Item: IOWord, Next: List> List for Cons<Item, Next> {}
+impl<Item, Next: List> List for Cons<Item, Next> {}
 impl List for Nil {}
 
 struct Cons<Item, Next: List> {
@@ -76,6 +80,7 @@ where
 
 impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Absorb<N>, Cons<Absorb<M>, T>>
 where
+    N: Add<M>, // present for all reasonable values in practice
     Cons<Absorb<Sum<N, M>>, T>: Normalize,
 {
     type Output = Norm<Cons<Absorb<Sum<N, M>>, T>>;
@@ -83,6 +88,7 @@ where
 
 impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Squeeze<N>, Cons<Squeeze<M>, T>>
 where
+    N: Add<M>, // present for all reasonable values in practice
     Cons<Squeeze<Sum<N, M>>, T>: Normalize,
 {
     type Output = Norm<Cons<Squeeze<Sum<N, M>>, T>>;
@@ -107,6 +113,11 @@ trait Consume<Op: IOWord> {
     type Output: List;
 }
 
+// Convenience trait for projection
+type Use<T, U> = <T as Consume<U>>::Output;
+
+// We unfold the type-level cases of the recurrence
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,20 +133,20 @@ mod tests {
     #[test]
     fn normalizes() {
         assert_type_eq!(
-            Normalize<Cons<Absorb<U2>, Cons<Absorb<U3>, Nil>>>,
+            Norm<Cons<Absorb<U2>, Cons<Absorb<U3>, Nil>>>,
             Cons<Absorb<U5>, Nil>
         );
         assert_type_eq!(
-            Normalize<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Nil>>>,
+            Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Nil>>>,
             Cons<Squeeze<U5>, Nil>
         );
         assert_type_eq!(
-            Normalize<Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>>,
+            Norm<Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>>,
             Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>
         );
         assert_type_eq!(
-            Normalize<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>,
-            Cons<Absorb<U1>, Cons<Squeeze<U5>, Nil>>
+            Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>,
+            Cons<Squeeze<U5>, Cons<Absorb<U1>, Nil>>
         );
     }
 }
