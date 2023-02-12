@@ -2,7 +2,7 @@ pub use typenum;
 
 use core::ops::{Add, Sub};
 use std::marker::PhantomData;
-use typenum::{Diff, NonZero, Sum, Unsigned, U0};
+use typenum::{Bit, Diff, NonZero, Sum, UInt, Unsigned, U0};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
 /// Note the phantom type avoids allocating actual data
@@ -71,42 +71,67 @@ impl Normalize for Nil {
     type Output = Nil;
 }
 
-impl<Item> Normalize for Cons<Item, Nil>
+// Head zero elimination
+impl<L> Normalize for Cons<Squeeze<U0>, L>
 where
-    Item: IOWord,
+    L: Normalize,
 {
-    type Output = Self;
+    type Output = Norm<L>;
 }
 
-impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Absorb<N>, Cons<Absorb<M>, T>>
+impl<L> Normalize for Cons<Absorb<U0>, L>
 where
-    N: Add<M>, // present for all reasonable values in practice
-    Cons<Absorb<Sum<N, M>>, T>: Normalize,
+    L: Normalize,
 {
-    type Output = Norm<Cons<Absorb<Sum<N, M>>, T>>;
+    type Output = Norm<L>;
 }
 
-impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Squeeze<N>, Cons<Squeeze<M>, T>>
-where
-    N: Add<M>, // present for all reasonable values in practice
-    Cons<Squeeze<Sum<N, M>>, T>: Normalize,
-{
-    type Output = Norm<Cons<Squeeze<Sum<N, M>>, T>>;
+// Base cases
+impl<U: Unsigned, B: Bit> Normalize for Cons<Absorb<UInt<U, B>>, Nil> {
+    type Output = Cons<Absorb<UInt<U, B>>, Nil>;
+}
+impl<U: Unsigned, B: Bit> Normalize for Cons<Squeeze<UInt<U, B>>, Nil> {
+    type Output = Cons<Squeeze<UInt<U, B>>, Nil>;
 }
 
-impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Squeeze<N>, Cons<Absorb<M>, T>>
+// Non-head-zero recursive cases: concatenation
+impl<U: Unsigned, B: Bit, M: Unsigned, T: List> Normalize
+    for Cons<Absorb<UInt<U, B>>, Cons<Absorb<M>, T>>
 where
-    Cons<Absorb<M>, T>: Normalize,
+    UInt<U, B>: Add<M>, // present for all values in practice
+    Cons<Absorb<Sum<UInt<U, B>, M>>, T>: Normalize,
 {
-    type Output = Cons<Squeeze<N>, Norm<Cons<Absorb<M>, T>>>;
+    type Output = Norm<Cons<Absorb<Sum<UInt<U, B>, M>>, T>>;
 }
 
-impl<N: Unsigned, M: Unsigned, T: List> Normalize for Cons<Absorb<N>, Cons<Squeeze<M>, T>>
+impl<U: Unsigned, B: Bit, M: Unsigned, T: List> Normalize
+    for Cons<Squeeze<UInt<U, B>>, Cons<Squeeze<M>, T>>
 where
-    Cons<Squeeze<M>, T>: Normalize,
+    UInt<U, B>: Add<M>, // present for all reasonable values in practice
+    Cons<Squeeze<Sum<UInt<U, B>, M>>, T>: Normalize,
 {
-    type Output = Cons<Absorb<N>, Norm<Cons<Squeeze<M>, T>>>;
+    type Output = Norm<Cons<Squeeze<Sum<UInt<U, B>, M>>, T>>;
 }
+
+// Non-head-zero recursive cases: no concatenation
+// This requires introspection into the UInt / UTerm type
+impl<U: Unsigned, B: Bit, U2: Unsigned, B2: Bit, T: List> Normalize
+    for Cons<Squeeze<UInt<U, B>>, Cons<Absorb<UInt<U2, B2>>, T>>
+where
+    Cons<Absorb<UInt<U2, B2>>, T>: Normalize,
+{
+    type Output = Cons<Squeeze<UInt<U, B>>, Norm<Cons<Absorb<UInt<U2, B2>>, T>>>;
+}
+
+impl<U: Unsigned, B: Bit, U2: Unsigned, B2: Bit, T: List> Normalize
+    for Cons<Absorb<UInt<U, B>>, Cons<Squeeze<UInt<U2, B2>>, T>>
+where
+    Cons<Squeeze<UInt<U2, B2>>, T>: Normalize,
+{
+    type Output = Cons<Absorb<UInt<U, B>>, Norm<Cons<Squeeze<UInt<U2, B2>>, T>>>;
+}
+
+// and in case the head is zero?
 
 // Emptying an IOPattern
 trait Consume<Op: IOWord> {
@@ -122,7 +147,7 @@ impl<N, M, T, L> Consume<Absorb<M>> for L
 where
     N: Unsigned,
     M: Unsigned,
-    N: Sub<M>, // present for N > M
+    N: Sub<M>, // present for N >= M
     T: List,
     L: Normalize<Output = Cons<Absorb<N>, T>>,
 {
@@ -133,32 +158,12 @@ impl<N, M, T, L> Consume<Squeeze<M>> for L
 where
     N: Unsigned,
     M: Unsigned,
-    N: Sub<M>, // present for N > M
+    N: Sub<M>, // present for N >= M
     T: List,
     L: Normalize<Output = Cons<Squeeze<N>, T>>,
 {
     type Output = Cons<Squeeze<Diff<N, M>>, T>;
 }
-
-/* this is conflicting with the above, so we need to reinject zero-removal in the Normalize trait
-impl<N, T, L> Consume<Absorb<N>> for L
-where
-    N: Unsigned,
-    T: List,
-    L: Normalize<Output = Cons<Absorb<N>, T>>,
-{
-    type Output = T;
-}
-
-impl<N, T, L> Consume<Squeeze<N>> for L
-where
-    N: Unsigned,
-    T: List,
-    L: Normalize<Output = Cons<Squeeze<N>, T>>,
-{
-    type Output = T;
-}
-*/
 
 #[cfg(test)]
 mod tests {
@@ -174,6 +179,7 @@ mod tests {
 
     #[test]
     fn normalizes() {
+        // Sum cases
         assert_type_eq!(
             Norm<Cons<Absorb<U2>, Cons<Absorb<U3>, Nil>>>,
             Cons<Absorb<U5>, Nil>
@@ -182,6 +188,7 @@ mod tests {
             Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Nil>>>,
             Cons<Squeeze<U5>, Nil>
         );
+        // recursion cases
         assert_type_eq!(
             Norm<Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>>,
             Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>
@@ -189,6 +196,32 @@ mod tests {
         assert_type_eq!(
             Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>,
             Cons<Squeeze<U5>, Cons<Absorb<U1>, Nil>>
+        );
+        // zero elision at the head
+        assert_type_eq!(
+            Norm<Cons<Absorb<U0>, Cons<Absorb<U3>, Nil>>>,
+            Cons<Absorb<U3>, Nil>
+        );
+        assert_type_eq!(
+            Norm<Cons<Absorb<U0>, Cons<Squeeze<U3>, Nil>>>,
+            Cons<Squeeze<U3>, Nil>
+        );
+        assert_type_eq!(
+            Norm<Cons<Squeeze<U0>, Cons<Squeeze<U3>, Nil>>>,
+            Cons<Squeeze<U3>, Nil>
+        );
+        assert_type_eq!(
+            Norm<Cons<Squeeze<U0>, Cons<Absorb<U3>, Nil>>>,
+            Cons<Absorb<U3>, Nil>
+        );
+        // zero elision in recursive cases
+        assert_type_eq!(
+            Norm<Cons<Absorb<U3>, Cons<Squeeze<U0>, Cons<Absorb<U1>, Nil>>>>,
+            Cons<Absorb<U4>, Nil>
+        );
+        assert_type_eq!(
+            Norm<Cons<Squeeze<U3>, Cons<Absorb<U0>, Cons<Squeeze<U1>, Nil>>>>,
+            Cons<Squeeze<U4>, Nil>
         );
     }
 
