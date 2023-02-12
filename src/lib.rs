@@ -1,8 +1,8 @@
 pub use typenum;
 
-use core::ops::Add;
+use core::ops::{Add, Sub};
 use std::marker::PhantomData;
-use typenum::{Sum, Unsigned};
+use typenum::{Diff, NonZero, Sum, Unsigned, U0};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
 /// Note the phantom type avoids allocating actual data
@@ -114,9 +114,51 @@ trait Consume<Op: IOWord> {
 }
 
 // Convenience trait for projection
+#[allow(dead_code)]
 type Use<T, U> = <T as Consume<U>>::Output;
 
 // We unfold the type-level cases of the recurrence
+impl<N, M, T, L> Consume<Absorb<M>> for L
+where
+    N: Unsigned,
+    M: Unsigned,
+    N: Sub<M>, // present for N > M
+    T: List,
+    L: Normalize<Output = Cons<Absorb<N>, T>>,
+{
+    type Output = Cons<Absorb<Diff<N, M>>, T>;
+}
+
+impl<N, M, T, L> Consume<Squeeze<M>> for L
+where
+    N: Unsigned,
+    M: Unsigned,
+    N: Sub<M>, // present for N > M
+    T: List,
+    L: Normalize<Output = Cons<Squeeze<N>, T>>,
+{
+    type Output = Cons<Squeeze<Diff<N, M>>, T>;
+}
+
+/* this is conflicting with the above, so we need to reinject zero-removal in the Normalize trait
+impl<N, T, L> Consume<Absorb<N>> for L
+where
+    N: Unsigned,
+    T: List,
+    L: Normalize<Output = Cons<Absorb<N>, T>>,
+{
+    type Output = T;
+}
+
+impl<N, T, L> Consume<Squeeze<N>> for L
+where
+    N: Unsigned,
+    T: List,
+    L: Normalize<Output = Cons<Squeeze<N>, T>>,
+{
+    type Output = T;
+}
+*/
 
 #[cfg(test)]
 mod tests {
@@ -147,6 +189,14 @@ mod tests {
         assert_type_eq!(
             Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>,
             Cons<Squeeze<U5>, Cons<Absorb<U1>, Nil>>
+        );
+    }
+
+    #[test]
+    fn uses() {
+        assert_type_eq!(
+            Use<Cons<Absorb<U5>, Nil>, Absorb<U2>>,
+            Cons<Absorb<U3>, Nil>
         );
     }
 }
