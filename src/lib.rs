@@ -1,8 +1,7 @@
-pub use typenum;
-
 use core::ops::{Add, Sub};
 use std::marker::PhantomData;
-use typenum::{Bit, Diff, NonZero, Sum, UInt, Unsigned, U0};
+pub use typenum;
+use typenum::{Bit, Diff, Sum, UInt, Unsigned, U0};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
 /// Note the phantom type avoids allocating actual data
@@ -26,7 +25,7 @@ trait Merge<Other: IOWord>: IOWord {
 #[allow(dead_code)]
 type Mer<T, U> = <T as Merge<U>>::Output;
 
-// Merge operator impl
+// Merge operator impl (optional)
 impl<N, M> Merge<Absorb<M>> for Absorb<N>
 where
     N: Unsigned,
@@ -72,17 +71,11 @@ impl Normalize for Nil {
 }
 
 // Head zero elimination
-impl<L> Normalize for Cons<Squeeze<U0>, L>
-where
-    L: Normalize,
-{
+impl<L: Normalize> Normalize for Cons<Squeeze<U0>, L> {
     type Output = Norm<L>;
 }
 
-impl<L> Normalize for Cons<Absorb<U0>, L>
-where
-    L: Normalize,
-{
+impl<L: Normalize> Normalize for Cons<Absorb<U0>, L> {
     type Output = Norm<L>;
 }
 
@@ -156,26 +149,48 @@ trait Consume<Op: IOWord> {
 type Use<T, U> = <T as Consume<U>>::Output;
 
 // We unfold the type-level cases of the recurrence
-impl<N, M, T, L> Consume<Absorb<M>> for L
+
+// If the consumer is larger than the head pattern, we get to something
+// impossible, because we assume this is only called on normalized lists
+
+// If we get to U0, we end
+impl<N, T: List> Consume<Absorb<U0>> for Cons<Absorb<N>, T>
 where
     N: Unsigned,
-    M: Unsigned,
-    N: Sub<M>, // present for N >= M
-    T: List,
-    L: Normalize<Output = Cons<Absorb<N>, T>>,
 {
-    type Output = Cons<Absorb<Diff<N, M>>, T>;
+    type Output = Self;
 }
 
-impl<N, M, T, L> Consume<Squeeze<M>> for L
+impl<N, T: List> Consume<Squeeze<U0>> for Cons<Squeeze<N>, T>
 where
     N: Unsigned,
-    M: Unsigned,
-    N: Sub<M>, // present for N >= M
-    T: List,
-    L: Normalize<Output = Cons<Squeeze<N>, T>>,
 {
-    type Output = Cons<Squeeze<Diff<N, M>>, T>;
+    type Output = Self;
+}
+
+// Otherwise, we simplify
+impl<U, B, N, T> Consume<Absorb<UInt<U, B>>> for Cons<Absorb<N>, T>
+where
+    U: Unsigned,
+    B: Bit,
+    N: Unsigned,
+    T: List,
+    N: Sub<UInt<U, B>>, // present for N >= UInt<U, B>
+    Cons<Absorb<Diff<N, UInt<U, B>>>, T>: Normalize,
+{
+    type Output = Norm<Cons<Absorb<Diff<N, UInt<U, B>>>, T>>;
+}
+
+impl<U, B, N, T> Consume<Squeeze<UInt<U, B>>> for Cons<Squeeze<N>, T>
+where
+    U: Unsigned,
+    B: Bit,
+    N: Unsigned,
+    T: List,
+    N: Sub<UInt<U, B>>, // present for N >= UInt<U, B>
+    Cons<Squeeze<Diff<N, UInt<U, B>>>, T>: Normalize,
+{
+    type Output = Norm<Cons<Squeeze<Diff<N, UInt<U, B>>>, T>>;
 }
 
 #[cfg(test)]
@@ -240,9 +255,47 @@ mod tests {
 
     #[test]
     fn uses() {
+        // Substraction
         assert_type_eq!(
             Use<Cons<Absorb<U5>, Nil>, Absorb<U2>>,
             Cons<Absorb<U3>, Nil>
         );
+        assert_type_eq!(
+            Use<Cons<Absorb<U5>, Cons<Squeeze<U2>, Nil>>, Absorb<U2>>,
+            Cons<Absorb<U3>, Cons<Squeeze<U2>, Nil>>
+        );
+
+        assert_type_eq!(
+            Use<Cons<Squeeze<U5>, Nil>, Squeeze<U2>>,
+            Cons<Squeeze<U3>, Nil>
+        );
+        assert_type_eq!(
+            Use<Cons<Squeeze<U5>, Cons<Absorb<U2>, Nil>>, Squeeze<U2>>,
+            Cons<Squeeze<U3>, Cons<Absorb<U2>, Nil>>
+        );
+
+        // Zero-simplification
+        assert_type_eq!(Use<Cons<Absorb<U5>, Nil>, Absorb<U5>>, Nil);
+        assert_type_eq!(
+            Use<Cons<Absorb<U5>, Nil>, Absorb<U0>>,
+            Cons<Absorb<U5>, Nil>
+        );
+        assert_type_eq!(
+            Use<Cons<Squeeze<U5>, Nil>, Squeeze<U0>>,
+            Cons<Squeeze<U5>, Nil>
+        );
+        assert_type_eq!(
+            Use<Cons<Absorb<U3>, Cons<Squeeze<U2>, Nil>>, Absorb<U3>>,
+            Cons<Squeeze<U2>, Nil>
+        );
+
+        // This doesn't work: you have to call on (head-)normalized lists
+        // initially
+        /*
+        assert_type_eq!(
+            Use<Cons<Absorb<U5>, Cons<Absorb<U1>, Nil>>, Absorb<U6>>,
+            Nil
+        );
+        */
     }
 }
