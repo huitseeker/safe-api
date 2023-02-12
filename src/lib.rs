@@ -131,7 +131,20 @@ where
     type Output = Cons<Absorb<UInt<U, B>>, Norm<Cons<Squeeze<UInt<U2, B2>>, T>>>;
 }
 
-// and in case the head is zero?
+// and in case the head is zero
+impl<U: Unsigned, B: Bit, T: List> Normalize for Cons<Squeeze<UInt<U, B>>, Cons<Absorb<U0>, T>>
+where
+    Cons<Squeeze<UInt<U, B>>, T>: Normalize,
+{
+    type Output = Norm<Cons<Squeeze<UInt<U, B>>, T>>;
+}
+
+impl<U: Unsigned, B: Bit, T: List> Normalize for Cons<Absorb<UInt<U, B>>, Cons<Squeeze<U0>, T>>
+where
+    Cons<Absorb<UInt<U, B>>, T>: Normalize,
+{
+    type Output = Norm<Cons<Absorb<UInt<U, B>>, T>>;
+}
 
 // Emptying an IOPattern
 trait Consume<Op: IOWord> {
