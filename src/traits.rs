@@ -46,7 +46,7 @@ where
 
 // type-level HList, specializable to IOWord
 // using  a sealed trait
-trait List {}
+pub trait List {}
 impl<Item, Next: List> List for Cons<Item, Next> {}
 impl List for Nil {}
 
@@ -58,12 +58,12 @@ struct Nil;
 // an IOPattern is a List of IOWords .. (TODO: does this need elaboration?)
 
 // Normalizing an IOPattern with Merge
-trait Normalize: List {
+pub trait Normalize: List {
     type Output: List;
 }
 
 // Convenience trait for projection
-type Norm<T> = <T as Normalize>::Output;
+pub type Norm<T> = <T as Normalize>::Output;
 
 // We unfold the type-level cases of the recurrence
 impl Normalize for Nil {
