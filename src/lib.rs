@@ -197,7 +197,7 @@ where
 mod tests {
     use super::*;
     use typenum::assert_type_eq;
-    use typenum::{U1, U2, U3, U4, U5};
+    use typenum::{U1, U2, U3, U4, U5, U6};
 
     #[test]
     fn merges() {
@@ -297,5 +297,14 @@ mod tests {
             Nil
         );
         */
+
+        // This, however, works
+        assert_type_eq!(
+            Use<
+                Use<Cons<Squeeze<U3>, Cons<Absorb<U5>, Cons<Absorb<U1>, Nil>>>, Squeeze<U3>>,
+                Absorb<U6>,
+            >,
+            Nil
+        );
     }
 }
