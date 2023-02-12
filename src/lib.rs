@@ -44,7 +44,7 @@ where
 
 // type-level HList
 trait List {}
-impl<Item, Next: List> List for Cons<Item, Next> {}
+impl<Item: IOWord, Next: List> List for Cons<Item, Next> {}
 impl List for Nil {}
 
 struct Cons<Item, Next: List> {
@@ -55,11 +55,46 @@ struct Nil;
 // an IOPattern is a List of IOWords .. (TODO: does this need elaboration?)
 
 // Normalizing an IOPattern with Merge
-type Normalize {
+trait Normalize: List {
     type Output: List;
 }
 
-// TODO: recursion !?
+// Convenience trait for projection
+type Norm<T> = <T as Normalize>::Output;
+
+
+// We unfold the type-level cases of the recurrence
+impl Normalize for Nil {
+    type Output = Nil;
+}
+
+impl Normalize for Cons<Item: IOWord, Nil> {
+    type Output = Self;
+}
+
+impl<N: Unsigned, M: Unsigned> Normalize for Cons<Absorb<N>, Cons<Absorb<M>, T>> 
+    where Cons<Absorb<Sum<N, M>>, T>: Normalize
+{
+    type Output = Norm<Cons<Absorb<Sum<N, M>>, T>;
+}
+
+impl<N: Unsigned, M: Unsigned> Normalize for Cons<Squeeze<N>, Cons<Squeeze<M>, T>> 
+    where Cons<Squeeze<Sum<N, M>>, T>: Normalize
+{
+    type Output = Norm<Cons<Squeeze<Sum<N, M>>, T>;
+}
+
+impl<N: Unsigned, M: Unsigned> Normalize for Cons<Squeeze<N>, Cons<Absorb<M>, T>> 
+    where Cons<Absorb<M>, T>: Normalize 
+{
+    type Output = Cons<Squeeze<N, Norm<Cons<Absorb<M>, T>>>;
+}
+
+impl<N: Unsigned, M: Unsigned> Normalize for Cons<Absorb<N>, Cons<Squeeze<M>, T>> 
+    where Cons<Squeeze<M>, T>: Normalize 
+{
+    type Output = Cons<Absorb<N, Norm<Cons<Squeeze<M>, T>>>;
+}
 
 // Emptying an IOPattern
 type Consume<Op: IOWord> {
@@ -73,8 +108,19 @@ mod tests {
     use typenum::{U1, U2, U3, U4, U5};
 
     #[test]
-    fn sums() {
-        assert_type_eq!(Merge<B1, B1, U2, U3>, IOWord<B1, U5>);
-        assert_type_eq!(Merge<B0, B0, U1, U3>, IOWord<B0, U4>);
+    fn merges() {
+        assert_type_eq!(Mer<Absorb<U2>, Absorb<U3>>, Absorb<U5>);
+        assert_type_eq!(Mer<Squeeze<U1>, Squeeze<U4>>, Squeeze<U5>);
+    }
+
+    #[test]
+    fn normalizes() {
+        assert_type_eq!(Normalize<Cons<Absorb<U2>, Cons<Absorb<U3>, Nil>>>, Cons<Absorb<U5>, Nil>);
+        assert_type_eq!(Normalize<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Nil>>>, Cons<Squeeze<U5>, Nil>);
+        assert_type_eq!(Normalize<Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>>, 
+            Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>
+        );
+        assert_type_eq!(Normalize<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>, 
+            Cons<Absorb<U1>, Cons<Squeeze<U5>, Nil>>);
     }
 }
