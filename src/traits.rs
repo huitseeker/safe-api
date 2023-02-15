@@ -15,35 +15,6 @@ trait IOWord {}
 impl<N: Unsigned> IOWord for Absorb<N> {}
 impl<N: Unsigned> IOWord for Squeeze<N> {}
 
-/// Our merge operator for same-type words
-// TODO: make a sealed trait
-trait Merge<Other: IOWord>: IOWord {
-    type Output;
-}
-
-// Convenience alias for projection
-#[allow(dead_code)]
-type Mer<T, U> = <T as Merge<U>>::Output;
-
-// Merge operator impl (optional)
-impl<N, M> Merge<Absorb<M>> for Absorb<N>
-where
-    N: Unsigned,
-    M: Unsigned,
-    N: Add<M>, // present for all reasonable values in practice
-{
-    type Output = Absorb<Sum<N, M>>;
-}
-
-impl<N, M> Merge<Squeeze<M>> for Squeeze<N>
-where
-    N: Unsigned,
-    M: Unsigned,
-    N: Add<M>, // present for all reasonable values in practice
-{
-    type Output = Squeeze<Sum<N, M>>;
-}
-
 // type-level HList, specializable to IOWord
 // using  a sealed trait
 pub trait List {}
@@ -208,12 +179,6 @@ mod tests {
     use super::*;
     use typenum::assert_type_eq;
     use typenum::{U1, U2, U3, U4, U5, U6};
-
-    #[test]
-    fn merges() {
-        assert_type_eq!(Mer<Absorb<U2>, Absorb<U3>>, Absorb<U5>);
-        assert_type_eq!(Mer<Squeeze<U1>, Squeeze<U4>>, Squeeze<U5>);
-    }
 
     #[test]
     fn normalizes() {
