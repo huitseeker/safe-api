@@ -45,21 +45,27 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
     }
 }
 
-/*
-impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Consume<Absorb<U>>> ExtraSponge<A, I> {
-    fn absorb(self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>> {
+impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
+    fn absorb<U>(self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>>
+    where
+        U: ArraySize<A::Value>,
+        I: Consume<Absorb<U>>,
+    {
         // TODO: just call A::absorb
         todo!()
     }
 }
 
-impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Consume<Squeeze<U>>> ExtraSponge<A, I> {
-    fn squeeze(self, &mut harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Squeeze<U>>> {
+impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
+    fn squeeze<U>(self, harray: &mut Array<A::Value, U>) -> ExtraSponge<A, Use<I, Squeeze<U>>>
+    where
+        U: ArraySize<A::Value>,
+        I: Consume<Squeeze<U>>,
+    {
         // TODO: just call A::squeeze
         todo!()
     }
 }
-*/
 
 impl<A: SpongeAPI, I> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
