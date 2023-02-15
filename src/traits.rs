@@ -140,13 +140,13 @@ where
 }
 
 // Emptying an IOPattern
-trait Consume<Op: IOWord> {
+pub trait Consume<Op: IOWord> {
     type Output: List;
 }
 
 // Convenience trait for projection
 #[allow(dead_code)]
-type Use<T, U> = <T as Consume<U>>::Output;
+pub type Use<T, U> = <T as Consume<U>>::Output;
 
 // We unfold the type-level cases of the recurrence
 
