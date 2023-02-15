@@ -1,6 +1,6 @@
 mod traits;
 use traits::{Normalize, Norm, List};
-use hybrid_array::Array;
+use hybrid_array::{Array, ArraySize};
 
 #[derive(Debug)]
 pub enum Error {
@@ -27,4 +27,43 @@ pub trait SpongeAPI {
     fn absorb(&mut self, length: u32, elements: &[Self::Value], acc: &mut Self::Acc);
     fn squeeze(&mut self, length: u32, acc: &mut Self::Acc) -> Vec<Self::Value>;
     fn finish(&mut self, _: &mut Self::Acc) -> Result<(), Error>;
+}
+
+// This is a generic NewType
+pub struct ExtraSponge<A, I>{
+    api: A,
+    acc: A::Acc,
+    current_pattern: I
+}
+
+impl<A: SpongeAPI, I: Normalize> {
+    
+    fn start(self, domain_separator: Option<u32>) -> Self<A, Norm<I>> = {
+        // TODO add the constraint to link `Norm<I>` to argument p of self.api.start
+        // this is in the style of e.g. typenum::Uint::to_u32()
+        todo!()
+    }
+}
+
+impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Consume<Absorb<U>>> {
+
+    fn absorb(self, harray: Array<A::Value, U>) -> Self<A, Use<Norm<I>, Absorb<U>>> {
+        // TODO: just call A
+        todo!()
+    }
+
+}
+
+impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Conseume<Squeeze<U>>> {
+    fn squeeze(self, &mut harray: Array<A::Value, U>) -> Self<A, Use<Norm<I>, Squeeze<U>> {
+        // TODO: just call A
+        todo!()
+    }
+}
+
+impl<A: SpongeAPI, I: Normalize> Drop for ExtraSponge<A, I> {
+    fn drop(&mut self) {
+        // TODO: blow up unless I == Nil
+        todo!()
+    }
 }
