@@ -55,6 +55,16 @@ struct Cons<Item, Next: List> {
 }
 struct Nil;
 
+#[macro_export]
+macro_rules! iopat {
+    () => { $crate::traits::Nil };
+    (...$rest:ty) => { $rest };
+    ($a:ty) => { $crate::iopat![$a,] };
+    ($a:ty, $($tok:tt)*) => {
+        $crate::traits::Cons<$a, $crate::iopat![$($tok)*]>
+    };
+}
+
 // an IOPattern is a List of IOWords .. (TODO: does this need elaboration?)
 
 // Normalizing an IOPattern with Merge
@@ -208,48 +218,30 @@ mod tests {
     #[test]
     fn normalizes() {
         // Sum cases
-        assert_type_eq!(
-            Norm<Cons<Absorb<U2>, Cons<Absorb<U3>, Nil>>>,
-            Cons<Absorb<U5>, Nil>
-        );
-        assert_type_eq!(
-            Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Nil>>>,
-            Cons<Squeeze<U5>, Nil>
-        );
+        assert_type_eq!(Norm<iopat![Absorb<U2>, Absorb<U3>]>, iopat![Absorb<U5>]);
+        assert_type_eq!(Norm<iopat![Squeeze<U2>, Squeeze<U3>]>, iopat![Squeeze<U5>]);
         // recursion cases
         assert_type_eq!(
-            Norm<Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>>,
-            Cons<Squeeze<U2>, Cons<Absorb<U3>, Nil>>
+            Norm<iopat![Squeeze<U2>, Absorb<U3>]>,
+            iopat![Squeeze<U2>, Absorb<U3>]
         );
         assert_type_eq!(
-            Norm<Cons<Squeeze<U2>, Cons<Squeeze<U3>, Cons<Absorb<U1>, Nil>>>>,
-            Cons<Squeeze<U5>, Cons<Absorb<U1>, Nil>>
+            Norm<iopat![Squeeze<U2>, Squeeze<U3>, Absorb<U1>]>,
+            iopat![Squeeze<U5>, Absorb<U1>]
         );
         // zero elision at the head
-        assert_type_eq!(
-            Norm<Cons<Absorb<U0>, Cons<Absorb<U3>, Nil>>>,
-            Cons<Absorb<U3>, Nil>
-        );
-        assert_type_eq!(
-            Norm<Cons<Absorb<U0>, Cons<Squeeze<U3>, Nil>>>,
-            Cons<Squeeze<U3>, Nil>
-        );
-        assert_type_eq!(
-            Norm<Cons<Squeeze<U0>, Cons<Squeeze<U3>, Nil>>>,
-            Cons<Squeeze<U3>, Nil>
-        );
-        assert_type_eq!(
-            Norm<Cons<Squeeze<U0>, Cons<Absorb<U3>, Nil>>>,
-            Cons<Absorb<U3>, Nil>
-        );
+        assert_type_eq!(Norm<iopat![Absorb<U0>, Absorb<U3>]>, iopat![Absorb<U3>]);
+        assert_type_eq!(Norm<iopat![Absorb<U0>, Squeeze<U3>]>, iopat![Squeeze<U3>]);
+        assert_type_eq!(Norm<iopat![Squeeze<U0>, Squeeze<U3>]>, iopat![Squeeze<U3>]);
+        assert_type_eq!(Norm<iopat![Squeeze<U0>, Absorb<U3>]>, iopat![Absorb<U3>]);
         // zero elision in recursive cases
         assert_type_eq!(
-            Norm<Cons<Absorb<U3>, Cons<Squeeze<U0>, Cons<Absorb<U1>, Nil>>>>,
-            Cons<Absorb<U4>, Nil>
+            Norm<iopat![Absorb<U3>, Squeeze<U0>, Absorb<U1>]>,
+            iopat![Absorb<U4>]
         );
         assert_type_eq!(
-            Norm<Cons<Squeeze<U3>, Cons<Absorb<U0>, Cons<Squeeze<U1>, Nil>>>>,
-            Cons<Squeeze<U4>, Nil>
+            Norm<iopat![Squeeze<U3>, Absorb<U0>, Squeeze<U1>]>,
+            iopat![Squeeze<U4>]
         );
     }
 
@@ -257,53 +249,50 @@ mod tests {
     fn uses() {
         // Substraction
         assert_type_eq!(
-            Use<Cons<Absorb<U5>, Nil>, Absorb<U2>>,
-            Cons<Absorb<U3>, Nil>
+            Use<iopat![Absorb<U5>], Absorb<U2>>,
+            iopat![Absorb<U3>]
         );
         assert_type_eq!(
-            Use<Cons<Absorb<U5>, Cons<Squeeze<U2>, Nil>>, Absorb<U2>>,
-            Cons<Absorb<U3>, Cons<Squeeze<U2>, Nil>>
+            Use<iopat![Absorb<U5>, Squeeze<U2>], Absorb<U2>>,
+            iopat![Absorb<U3>, Squeeze<U2>]
         );
 
         assert_type_eq!(
-            Use<Cons<Squeeze<U5>, Nil>, Squeeze<U2>>,
-            Cons<Squeeze<U3>, Nil>
+            Use<iopat![Squeeze<U5>], Squeeze<U2>>,
+            iopat![Squeeze<U3>]
         );
         assert_type_eq!(
-            Use<Cons<Squeeze<U5>, Cons<Absorb<U2>, Nil>>, Squeeze<U2>>,
-            Cons<Squeeze<U3>, Cons<Absorb<U2>, Nil>>
+            Use<iopat![Squeeze<U5>, Absorb<U2>], Squeeze<U2>>,
+            iopat![Squeeze<U3>, Absorb<U2>]
         );
 
         // Zero-simplification
-        assert_type_eq!(Use<Cons<Absorb<U5>, Nil>, Absorb<U5>>, Nil);
+        assert_type_eq!(Use<iopat![Absorb<U5>], Absorb<U5>>, Nil);
         assert_type_eq!(
-            Use<Cons<Absorb<U5>, Nil>, Absorb<U0>>,
-            Cons<Absorb<U5>, Nil>
+            Use<iopat![Absorb<U5>], Absorb<U0>>,
+            iopat![Absorb<U5>]
         );
         assert_type_eq!(
-            Use<Cons<Squeeze<U5>, Nil>, Squeeze<U0>>,
-            Cons<Squeeze<U5>, Nil>
+            Use<iopat![Squeeze<U5>], Squeeze<U0>>,
+            iopat![Squeeze<U5>]
         );
         assert_type_eq!(
-            Use<Cons<Absorb<U3>, Cons<Squeeze<U2>, Nil>>, Absorb<U3>>,
-            Cons<Squeeze<U2>, Nil>
+            Use<iopat![Absorb<U3>, Squeeze<U2>], Absorb<U3>>,
+            iopat![Squeeze<U2>]
         );
 
         // This doesn't work: you have to call on (head-)normalized lists
         // initially
         /*
         assert_type_eq!(
-            Use<Cons<Absorb<U5>, Cons<Absorb<U1>, Nil>>, Absorb<U6>>,
+            Use<iopat![Absorb<U5>, Absorb<U1>], Absorb<U6>>,
             Nil
         );
         */
 
         // This, however, works
         assert_type_eq!(
-            Use<
-                Use<Cons<Squeeze<U3>, Cons<Absorb<U5>, Cons<Absorb<U1>, Nil>>>, Squeeze<U3>>,
-                Absorb<U6>,
-            >,
+            Use<Use<iopat![Squeeze<U3>, Absorb<U5>, Absorb<U1>], Squeeze<U3>>, Absorb<U6>>,
             Nil
         );
     }

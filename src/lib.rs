@@ -45,6 +45,7 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
     }
 }
 
+/*
 impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Consume<Absorb<U>>> ExtraSponge<A, I> {
     fn absorb(self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>> {
         // TODO: just call A::absorb
@@ -58,8 +59,9 @@ impl<A: SpongeAPI, U: ArraySize<A::Value>, I: Consume<Squeeze<U>>> ExtraSponge<A
         todo!()
     }
 }
+*/
 
-impl<A: SpongeAPI, I: Normalize> Drop for ExtraSponge<A, I> {
+impl<A: SpongeAPI, I> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
         // TODO: blow up unless I == Nil
         todo!()
