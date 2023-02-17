@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 hybrid-array = "0.1.0"
 typenum = "1.16.0"
+
+[dev-dependencies]
+trybuild = {version = "1.0.77", features = ["diff"]}

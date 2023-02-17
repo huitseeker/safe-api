@@ -10,7 +10,7 @@ pub struct Squeeze<N>(PhantomData<N>);
 
 /// Our trait for common treatment of both patterns
 // TODO: make a sealed trait
-trait IOWord {}
+pub trait IOWord {}
 
 impl<N: Unsigned> IOWord for Absorb<N> {}
 impl<N: Unsigned> IOWord for Squeeze<N> {}
@@ -21,10 +21,10 @@ pub trait List {}
 impl<Item, Next: List> List for Cons<Item, Next> {}
 impl List for Nil {}
 
-struct Cons<Item, Next: List> {
+pub struct Cons<Item, Next: List> {
     _phantom: PhantomData<(Item, Next)>,
 }
-struct Nil;
+pub struct Nil;
 
 #[macro_export]
 macro_rules! iopat {

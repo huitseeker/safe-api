@@ -1,4 +1,4 @@
-mod traits;
+pub mod traits;
 use hybrid_array::{Array, ArraySize};
 use traits::{Absorb, Consume, Norm, Normalize, Squeeze, Use};
 
@@ -73,3 +73,6 @@ impl<A: SpongeAPI, I> Drop for ExtraSponge<A, I> {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod unit_tests;
