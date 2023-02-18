@@ -1,6 +1,8 @@
 pub mod traits;
+use std::marker::PhantomData;
+
 use hybrid_array::{Array, ArraySize};
-use traits::{Absorb, Consume, Norm, Normalize, Squeeze, Use};
+use traits::{Absorb, Consume, List, Norm, Normalize, Squeeze, Use};
 
 #[derive(Debug)]
 pub enum Error {
@@ -30,10 +32,20 @@ pub trait SpongeAPI {
 }
 
 // This is a slightly extended generic NewType
-pub struct ExtraSponge<A: SpongeAPI, I> {
+pub struct ExtraSponge<A: SpongeAPI, I: List> {
     api: A,
     acc: A::Acc,
     current_pattern: I,
+}
+
+impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
+    fn new(api: A, acc: A::Acc) -> ExtraSponge<A, I> {
+        ExtraSponge {
+            api,
+            acc,
+            current_pattern: I::unit(),
+        }
+    }
 }
 
 impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
@@ -46,12 +58,13 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
 }
 
 impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
-    fn absorb<U>(self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>>
+    fn absorb<U>(mut self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>>
     where
         U: ArraySize<A::Value>,
         I: Consume<Absorb<U>>,
     {
-        // TODO: just call A::absorb
+        self.api
+            .absorb(U::to_u32(), &harray.as_slice(), &mut self.acc);
         todo!()
     }
 }
@@ -67,7 +80,7 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
     }
 }
 
-impl<A: SpongeAPI, I> Drop for ExtraSponge<A, I> {
+impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
         // TODO: blow up unless I == Nil
         todo!()

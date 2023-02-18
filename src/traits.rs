@@ -15,11 +15,27 @@ pub trait IOWord {}
 impl<N: Unsigned> IOWord for Absorb<N> {}
 impl<N: Unsigned> IOWord for Squeeze<N> {}
 
-// type-level HList, specializable to IOWord
-// using  a sealed trait
-pub trait List {}
-impl<Item, Next: List> List for Cons<Item, Next> {}
-impl List for Nil {}
+/// Type-level HList, specializable to IOWord
+/// using  a sealed trait
+pub trait List {
+    /// This is an inhabitant of the List type corresponding to the
+    /// Self type
+    fn unit() -> Self;
+}
+
+impl<Item: IOWord, Next: List> List for Cons<Item, Next> {
+    fn unit() -> Self {
+        Cons {
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl List for Nil {
+    fn unit() -> Self {
+        Nil
+    }
+}
 
 pub struct Cons<Item, Next: List> {
     _phantom: PhantomData<(Item, Next)>,
