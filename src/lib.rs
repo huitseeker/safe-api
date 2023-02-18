@@ -1,8 +1,7 @@
 pub mod traits;
-use std::marker::PhantomData;
 
 use hybrid_array::{Array, ArraySize};
-use traits::{Absorb, Consume, List, Norm, Normalize, Squeeze, Use};
+use traits::{Absorb, Consume, IOWord, List, Norm, Normalize, Squeeze, Use};
 
 #[derive(Debug)]
 pub enum Error {
@@ -39,12 +38,25 @@ pub struct ExtraSponge<A: SpongeAPI, I: List> {
 }
 
 impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
-    fn new(api: A, acc: A::Acc) -> ExtraSponge<A, I> {
+    pub fn new(api: A, acc: A::Acc) -> ExtraSponge<A, I> {
         ExtraSponge {
             api,
             acc,
             current_pattern: I::unit(),
         }
+    }
+
+    // This allows reinterpreting the type decorator of an ExtraSponge<A, I> into
+    // an ExtraSponge<A, J> where J is another pattern.
+    // Safety: this should stay private to ensure it is only used in the below.
+    fn repattern<J: List>(self) -> ExtraSponge<A, J> {
+        // Mandated by the existence of a Drop implementation which we cannot move out of
+        // Safe since the only type that differs between source and destination is a Phantom
+        let res =
+            unsafe { std::mem::transmute_copy::<ExtraSponge<A, I>, ExtraSponge<A, J>>(&self) };
+        // lets us bypass the drop logic,
+        std::mem::forget(self);
+        res
     }
 }
 
@@ -65,18 +77,19 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
     {
         self.api
             .absorb(U::to_u32(), &harray.as_slice(), &mut self.acc);
-        todo!()
+        self.repattern()
     }
 }
 
 impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
-    fn squeeze<U>(self, harray: &mut Array<A::Value, U>) -> ExtraSponge<A, Use<I, Squeeze<U>>>
+    fn squeeze<U>(mut self, harray: &mut Array<A::Value, U>) -> ExtraSponge<A, Use<I, Squeeze<U>>>
     where
         U: ArraySize<A::Value>,
         I: Consume<Squeeze<U>>,
     {
-        // TODO: just call A::squeeze
-        todo!()
+        let values = self.api.squeeze(U::to_u32(), &mut self.acc);
+        todo!("copy values into harray");
+        self.repattern()
     }
 }
 
