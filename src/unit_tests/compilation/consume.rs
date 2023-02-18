@@ -1,0 +1,12 @@
+use safe_api::iopat;
+use safe_api::traits::{Absorb, Squeeze, Use};
+use typenum::assert_type_eq;
+use typenum::{U0, U1, U5, U6};
+
+fn main() {
+    // Running out of Use allowance!
+    assert_type_eq!(
+        Use<iopat![Absorb<U3>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
+        iopat![Squeeze<U1>, Absorb<U1>]
+    );
+}

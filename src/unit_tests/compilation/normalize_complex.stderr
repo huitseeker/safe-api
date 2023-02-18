@@ -1,0 +1,27 @@
+error[E0412]: cannot find type `U6` in this scope
+ --> src/unit_tests/compilation/normalize_complex.rs:9:35
+  |
+9 |         iopat![Absorb<U2>, Absorb<U6>]
+  |                                   ^^
+  |
+ ::: $OUT_DIR[typenum]/consts.rs
+  |
+  |     pub type U0 = UTerm;
+  |     ----------- similarly named type alias `U0` defined here
+  |
+help: a type alias with a similar name exists
+   |
+9  |         iopat![Absorb<U2>, Absorb<U0>]
+   |                                   ~~
+help: consider importing this type alias
+   |
+1  | use typenum::U6;
+   |
+
+warning: unused import: `U8`
+ --> src/unit_tests/compilation/normalize_complex.rs:4:27
+  |
+4 | use typenum::{U0, U2, U3, U8};
+  |                           ^^
+  |
+  = note: `#[warn(unused_imports)]` on by default

@@ -1,0 +1,27 @@
+error[E0412]: cannot find type `U3` in this scope
+ --> src/unit_tests/compilation/consume.rs:9:27
+  |
+9 |         Use<iopat![Absorb<U3>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
+  |                           ^^
+  |
+ ::: $OUT_DIR[typenum]/consts.rs
+  |
+  |     pub type U0 = UTerm;
+  |     ----------- similarly named type alias `U0` defined here
+  |
+help: a type alias with a similar name exists
+   |
+9  |         Use<iopat![Absorb<U0>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
+   |                           ~~
+help: consider importing this type alias
+   |
+1  | use typenum::U3;
+   |
+
+warning: unused imports: `U0`, `U5`
+ --> src/unit_tests/compilation/consume.rs:4:15
+  |
+4 | use typenum::{U0, U1, U5, U6};
+  |               ^^      ^^
+  |
+  = note: `#[warn(unused_imports)]` on by default

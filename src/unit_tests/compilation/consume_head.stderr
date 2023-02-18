@@ -1,0 +1,27 @@
+error[E0412]: cannot find type `Nil` in this scope
+  --> src/unit_tests/compilation/consume_head.rs:10:9
+   |
+10 |         Nil
+   |         ^^^ not found in this scope
+   |
+help: consider importing this struct
+   |
+1  | use safe_api::traits::Nil;
+   |
+
+error[E0277]: cannot subtract `B1` from `UInt<UTerm, B0>`
+ --> src/unit_tests/compilation/consume_head.rs:9:9
+  |
+9 |         Use<iopat![Absorb<U5>, Squeeze<U0>, Absorb<U1>], Absorb<U6>>,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `UInt<UTerm, B0> - B1`
+  |
+  = help: the trait `Sub<B1>` is not implemented for `UInt<UTerm, B0>`
+  = help: the following other types implement trait `Sub<Rhs>`:
+            <UInt<U, B0> as Sub<B1>>
+            <UInt<U, B> as Sub<B0>>
+            <UInt<UInt<U, B>, B1> as Sub<B1>>
+            <UInt<UTerm, B1> as Sub<B1>>
+            <UInt<Ul, Bl> as Sub<Ur>>
+  = note: required for `UInt<UInt<UTerm, B1>, B0>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
+  = note: required for `UInt<UInt<UInt<UTerm, B1>, B0>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
+  = note: required for `Cons<Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<Squeeze<UTerm>, Cons<Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<safe_api::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
