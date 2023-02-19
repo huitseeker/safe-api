@@ -5,6 +5,8 @@
     unreachable_pub
 )]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
 
 //! This crate offers a method and a set of traits that lifts the errors produces by the Sponge API at runtime.
 //! To read more about the Sponge API, you can read the Spec at [this link][1].

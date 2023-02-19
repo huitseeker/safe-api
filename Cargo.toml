@@ -7,7 +7,7 @@ keywords = ["zero-knowledge", "hashing", "sponge"]
 description = "A trait hierarchy to help make the SAFE API return errors at compile time."
 authors = ["François Garillot <francois@garillot.net>"]
 license = "MIT"
-readme = "../README.md"
+readme = "README.md"
 
 [dependencies]
 hybrid-array = "0.1.0"
