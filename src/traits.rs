@@ -1,12 +1,23 @@
+//! This module contains the traits for the IOPattern type, along with the implementation of type-level operations checking on their correct usage.
+//! The IOPattern type is a type-level HList of IOWords, which are either Absorb or Squeeze.
+//! The main operations are Normalize, which merges successive words of the same type, and Consume, which takes a word and an IOPattern, and checks whether
+//! it is legal to use the operation of this word on the tip of the IOPattern.
+//! This is explained in more detail in [the spec document][1].
+//!
+//! [1]: https://hackmd.io/bHgsH6mMStCVibM_wYvb2w#SAFE-Sponge-API-for-Field-Elements-%E2%80%93-A-Toolbox-for-ZK-Hash-Applications
+
 use core::ops::{Add, Sub};
 use std::marker::PhantomData;
 pub use typenum;
 use typenum::{Bit, Diff, Sum, UInt, Unsigned, U0};
 
-/// Our two alternatives for the IOPattern, i.e. these are IOWords
-/// Note the phantom type avoids allocating actual data.
+// Our two alternatives for the IOPattern, i.e. these are IOWords
+// Note the phantom type avoids allocating actual data.
+
+/// The type-level Absorb operation
 #[derive(Debug)]
 pub struct Absorb<N>(PhantomData<N>);
+/// The type-level Squeeze operation
 #[derive(Debug)]
 pub struct Squeeze<N>(PhantomData<N>);
 
@@ -19,6 +30,8 @@ impl<N: Unsigned> IOWord for Squeeze<N> {}
 
 /// Type-level HList, specializable to IOWord
 /// using  a sealed trait
+/// See e.g. https://hackage.haskell.org/package/heterolist (or frunk) for
+/// what a HList is.
 pub trait List {
     /// This is an inhabitant of the List type corresponding to the
     /// Self type
@@ -48,13 +61,17 @@ impl List for Nil {
     }
 }
 
+/// The concrete type constructor for our HList trait
 #[derive(Debug)]
 pub struct Cons<Item, Next: List> {
     _phantom: PhantomData<(Item, Next)>,
 }
+
+/// The concrete type for our empty HList representant
 #[derive(Debug)]
 pub struct Nil;
 
+/// Convenience helper for creating an instance of List
 #[macro_export]
 macro_rules! iopat {
     () => { $crate::traits::Nil };
@@ -67,12 +84,13 @@ macro_rules! iopat {
 
 // an IOPattern is a List of IOWords .. (TODO: does this need elaboration?)
 
-// Normalizing an IOPattern with Merge
+/// Normalizing an IOPattern with merge operations applied recursively
 pub trait Normalize: List {
+    /// The output of the normalization
     type Output: List;
 }
 
-// Convenience trait for projection
+/// Convenience trait for projection of Normalize
 pub type Norm<T> = <T as Normalize>::Output;
 
 // We unfold the type-level cases of the recurrence
@@ -149,12 +167,16 @@ where
     type Output = Norm<Cons<Absorb<UInt<U, B>>, T>>;
 }
 
-// Emptying an IOPattern
+/// Emptying an IOPattern using an IOWord. This assumes that it is working
+/// with a list in head-normal form (i.e. the first element cannot be merged
+/// with the immediately following list). All lists that have been normalized
+/// are in head-normal form.
 pub trait Consume<Op: IOWord> {
+    /// The output of the consumption
     type Output: List;
 }
 
-// Convenience trait for projection
+/// Convenience trait for projection of Consume
 #[allow(dead_code)]
 pub type Use<T, U> = <T as Consume<U>>::Output;
 

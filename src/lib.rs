@@ -5,14 +5,22 @@
     unreachable_pub
 )]
 #![deny(rustdoc::broken_intra_doc_links)]
+
+//! This crate offers a method and a set of traits that lifts the errors produces by the Sponge API at runtime.
+//! To read more about the Sponge API, you can read the Spec at [this link][1].
+//!
+//! [1]: https://hackmd.io/bHgsH6mMStCVibM_wYvb2w#SAFE-Sponge-API-for-Field-Elements-%E2%80%93-A-Toolbox-for-ZK-Hash-Applications
+
 pub mod traits;
 
 use hybrid_array::{Array, ArraySize};
 use traits::{Absorb, Cons, Consume, IOWord, List, Nil, Norm, Normalize, Squeeze, Use};
 use typenum::Unsigned;
 
+/// The Error returned at runtime by the sponge API in case the finalize operation fails.
 #[derive(Debug)]
 pub enum Error {
+    /// Error returned when the sponge is not in a state where it can be finalized.
     ParameterUsageMismatch,
 }
 
@@ -20,7 +28,9 @@ pub enum Error {
 /// See https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SpongeOp {
+    /// The absorb operation.
     Absorb(u32),
+    /// The squeeze operation.
     Squeeze(u32),
 }
 
@@ -28,6 +38,7 @@ pub enum SpongeOp {
 /// This is, morally speaking, an extension trait of the IOWord trait,
 /// though Rust can of course not check exhaustivity.
 pub trait ToSpongeOp: IOWord {
+    /// Converts the type-level operation to its term-level representation
     fn to_sponge_op() -> SpongeOp;
 }
 
@@ -43,6 +54,7 @@ impl<U: Unsigned> ToSpongeOp for Squeeze<U> {
     }
 }
 
+/// The type describing the I/O pattern of a sponge, at a term level.
 #[derive(Clone, Debug)]
 pub struct IOPattern(pub Vec<SpongeOp>);
 
@@ -52,6 +64,7 @@ pub struct IOPattern(pub Vec<SpongeOp>);
 /// This is morally an extension trait of the List trait, though Rust can of
 /// course not check exhaustivity.
 pub trait ToIOPattern {
+    /// Converts the type-level pattern to its term-level representation
     fn to_iopattern() -> IOPattern;
 }
 
@@ -74,14 +87,26 @@ impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
 /// Slightly modified so that the squeeze function takes an argument as a mutable slice
 /// instead of returning a Vec.
 pub trait SpongeAPI {
+    /// The type of the sponge state
     type Acc;
+    /// The type of the elements froming the I/O of the sponge
     type Value;
 
-    /// Optional `domain_separator` defaults to 0
+    /// This initializes the internal state of the sponge, modifying up to c/2
+    /// field elements of the state. It’s done once in the lifetime of a sponge.
     fn start(&mut self, p: IOPattern, domain_separator: Option<u32>, acc: &mut Self::Acc);
+
+    /// This injects `length` field elements to the state from the array `elements`, interleaving calls to the permutation
+    /// It also checks if the current call matches the IO pattern.
     fn absorb(&mut self, length: u32, elements: &[Self::Value], acc: &mut Self::Acc);
+
+    /// This extracts `length` field elements from the state to the array `elements`, interleaving calls to the permutation
+    /// It also checks if the current call matches the IO pattern.
     // This differs from the original API in that it takes a mutable slice instead of returning a Vec.
     fn squeeze(&mut self, length: u32, elements: &mut [Self::Value], acc: &mut Self::Acc);
+
+    /// This marks the end of the sponge life, preventing any further operation.
+    /// In particular, the state is erased from memory. The result is OK, or an error
     // This differs from the original API in that if does not take a final Self::Acc argument.
     // It would not be impossible to do it without this change, but it would require depending on something other
     // than the Drop impelementation to detect the ExtraSponge going out of scope (e.g. MIRAI).
@@ -97,6 +122,8 @@ pub struct ExtraSponge<A: SpongeAPI, I: List> {
 }
 
 impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
+    /// This is the constructor for the ExtraSponge type: a simple wrapper, which needs type annotations
+    /// to be used properly
     pub fn new(api: A) -> ExtraSponge<A, I> {
         ExtraSponge {
             api,
@@ -123,9 +150,9 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I>
 where
     Norm<I>: ToIOPattern, // Satisfied in all cases
 {
-    // Create a sponge with the IOPatten given as a type parameter.
-    // Note that we do not require this pattern to be normalized - instead the constructor will return
-    // an ExtraSPonge with a normalized pattern.
+    /// Creates a sponge with the IOPatten given as a type parameter.
+    /// Note that we do not require this pattern to be normalized - instead the constructor will return
+    /// an ExtraSPonge with a normalized pattern.
     pub fn start(
         domain_separator: Option<u32>,
         api: A,
@@ -219,6 +246,15 @@ mod tests {
         }
     }
 
+    impl Default for BasicSponge {
+        fn default() -> Self {
+            BasicSponge {
+                elements: Vec::new(),
+                pattern: VecDeque::new(),
+            }
+        }
+    }
+
     // This is a very simple implementation of SpongeAPI, which is used in the tests.
     // It is not meant to be used in production. It is spectacularly not API-compliant
     impl SpongeAPI for BasicSponge {
@@ -254,5 +290,15 @@ mod tests {
                 .then(|| ())
                 .ok_or(Error::ParameterUsageMismatch)
         }
+    }
+
+    #[test]
+    fn test_start() {
+        let mut start_acc: Vec<u8> = vec![1, 2, 3];
+        let basic_sponge = BasicSponge::default().start(
+            IOPattern(vec![SpongeOp::Absorb(1), SpongeOp::Squeeze(1)]),
+            None,
+            &mut start_acc,
+        );
     }
 }
