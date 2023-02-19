@@ -58,7 +58,7 @@ impl ToIOPattern for Nil {
         IOPattern(vec![])
     }
 }
-impl<Item: ToSpongeOp, T: ToIOPattern> ToIOPattern for Cons<Item, T> {
+impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
     fn to_iopattern() -> IOPattern {
         let mut v = T::to_iopattern().0;
         v.push(<Item as ToSpongeOp>::to_sponge_op());
@@ -74,7 +74,7 @@ pub trait SpongeAPI {
     type Value;
 
     /// Optional `domain_separator` defaults to 0
-    fn start(&mut self, p: IOPattern, domain_separator: Option<u32>, _: &mut Self::Acc);
+    fn start(&mut self, p: IOPattern, domain_separator: Option<u32>, acc: &mut Self::Acc);
     fn absorb(&mut self, length: u32, elements: &[Self::Value], acc: &mut Self::Acc);
     fn squeeze(
         &mut self,
@@ -117,12 +117,24 @@ impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
     }
 }
 
-impl<A: SpongeAPI, I: Normalize + ToIOPattern> ExtraSponge<A, I> {
-    // Note this gives us the normalization of I!
-    fn start(self, domain_separator: Option<u32>) -> ExtraSponge<A, Norm<I>> {
-        // TODO add the constraint to link `Norm<I>` to argument p of self.api.start
-        // this is in the style of e.g. typenum::Uint::to_u32()
-        todo!()
+impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I>
+where
+    Norm<I>: ToIOPattern, // Satisfied in all cases
+{
+    // Create a sponge with the IOPatten given as a type parameter.
+    // Note that we do not require this pattern to be normalized - instead the constructor will return
+    // an ExtraSPonge with a normalized pattern.
+    fn start(domain_separator: Option<u32>, api: A, acc: A::Acc) -> ExtraSponge<A, Norm<I>> {
+        // Note: we not directly creating the state on I but on its normalization, satifying the requirement
+        // in subsequent calls to absorb and squeeze - the pattern, by then, will be in normalized form and these calls
+        // will maintain it as such.
+        let mut extra_sponge: ExtraSponge<A, Norm<I>> = ExtraSponge::new(api, acc);
+        extra_sponge.api.start(
+            Norm::<I>::to_iopattern(),
+            domain_separator,
+            &mut extra_sponge.acc,
+        );
+        extra_sponge
     }
 }
 
