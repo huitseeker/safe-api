@@ -2,8 +2,12 @@
 name = "extra-safe"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/huitseeker/safe-api"
+keywords = ["zero-knowledge", "hashing", "sponge"]
+description = "A trait hierarchy to help make the SAFE API return errors at compile time."
+authors = ["François Garillot <francois@garillot.net>"]
+license = "MIT"
+readme = "../README.md"
 
 [dependencies]
 hybrid-array = "0.1.0"
