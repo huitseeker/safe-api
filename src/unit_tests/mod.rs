@@ -1,3 +1,5 @@
+mod sponge_instance;
+
 #[test]
 fn illegal_api_uses() {
     let t = trybuild::TestCases::new();
