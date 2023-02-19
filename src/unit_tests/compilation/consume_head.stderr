@@ -13,4 +13,4 @@ error[E0277]: cannot subtract `B1` from `UInt<UTerm, B0>`
             <UInt<Ul, Bl> as Sub<Ur>>
   = note: required for `UInt<UInt<UTerm, B1>, B0>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
   = note: required for `UInt<UInt<UInt<UTerm, B1>, B0>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
-  = note: required for `Cons<safe_api::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<safe_api::traits::Squeeze<...>, ...>>` to implement `Consume<safe_api::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+  = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<..., ...>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`

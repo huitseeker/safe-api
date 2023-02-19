@@ -1,5 +1,5 @@
-use safe_api::iopat;
-use safe_api::traits::{Absorb, Squeeze, Use};
+use extra_safe::iopat;
+use extra_safe::traits::{Absorb, Squeeze, Use};
 use typenum::assert_type_eq;
 use typenum::{U0, U1, U5, U6};
 
