@@ -208,6 +208,17 @@ mod tests {
         pattern: VecDeque<SpongeOp>,
     }
 
+    impl BasicSponge {
+        fn permute(&mut self, other_elems: &Vec<u8>) {
+            self.elements
+                .iter_mut()
+                .zip(other_elems)
+                .for_each(|(a, b)| {
+                    *a = *a ^ *b;
+                });
+        }
+    }
+
     // This is a very simple implementation of SpongeAPI, which is used in the tests.
     // It is not meant to be used in production. It is spectacularly not API-compliant
     impl SpongeAPI for BasicSponge {
@@ -223,6 +234,7 @@ mod tests {
             assert_eq!(length as usize, elements.len());
             let word = self.pattern.pop_front().unwrap();
             assert_eq!(word, SpongeOp::Absorb(length));
+            self.permute(acc);
             self.elements.extend_from_slice(elements);
         }
 
@@ -230,7 +242,7 @@ mod tests {
             assert_eq!(length as usize, elements.len());
             let word = self.pattern.pop_front().unwrap();
             assert_eq!(word, SpongeOp::Squeeze(length));
-
+            self.permute(acc);
             for i in 0..length as usize {
                 elements[i] = self.elements[i];
             }
