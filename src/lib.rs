@@ -1,7 +1,15 @@
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    rust_2018_idioms,
+    unreachable_pub
+)]
+#![deny(rustdoc::broken_intra_doc_links)]
 pub mod traits;
 
-use hybrid_array::{Array, ArrayOps, ArraySize};
-use traits::{Absorb, Consume, IOWord, List, Norm, Normalize, Squeeze, Use};
+use hybrid_array::{Array, ArraySize};
+use traits::{Absorb, Cons, Consume, IOWord, List, Nil, Norm, Normalize, Squeeze, Use};
+use typenum::Unsigned;
 
 #[derive(Debug)]
 pub enum Error {
@@ -14,11 +22,53 @@ pub enum SpongeOp {
     Squeeze(u32),
 }
 
+/// Conversion from a type-level IOWord to a crate::SpongeOp
+/// This is, morally speaking, an extension trait of the IOWord trait,
+/// though Rust can of course not check exhaustivity.
+pub trait ToSpongeOp: IOWord {
+    fn to_sponge_op() -> SpongeOp;
+}
+
+impl<U: Unsigned> ToSpongeOp for Absorb<U> {
+    fn to_sponge_op() -> SpongeOp {
+        SpongeOp::Absorb(U::to_u32())
+    }
+}
+
+impl<U: Unsigned> ToSpongeOp for Squeeze<U> {
+    fn to_sponge_op() -> SpongeOp {
+        SpongeOp::Squeeze(U::to_u32())
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct IOPattern(pub Vec<SpongeOp>);
 
 // TODO : convert SpongeOp -> IOWord using macros
 
+/// Conversion from a trait::List type-level IOPattern to a crate::IOpattern
+/// This is morally an extension trait of the List trait, though Rust can of
+/// course not check exhaustivity.
+pub trait ToIOPattern {
+    fn to_iopattern() -> IOPattern;
+}
+
+impl ToIOPattern for Nil {
+    fn to_iopattern() -> IOPattern {
+        IOPattern(vec![])
+    }
+}
+impl<Item: ToSpongeOp, T: ToIOPattern> ToIOPattern for Cons<Item, T> {
+    fn to_iopattern() -> IOPattern {
+        let mut v = T::to_iopattern().0;
+        v.push(<Item as ToSpongeOp>::to_sponge_op());
+        IOPattern(v)
+    }
+}
+
+/// This is the SpongeAPI trait as you can find it in Neptune,
+/// slightly modified so that the squeeze function takes an argument as a mutable slice
+/// instead of returning a Vec.
 pub trait SpongeAPI {
     type Acc;
     type Value;
@@ -35,7 +85,9 @@ pub trait SpongeAPI {
     fn finish(&mut self, _: &mut Self::Acc) -> Result<(), Error>;
 }
 
-// This is a slightly extended generic NewType
+/// This is a slightly extended generic NewType wrapper around the original SpongeAPI.
+/// It is decorated with the IOPattern I intended for this sponge instance.
+#[derive(Debug)]
 pub struct ExtraSponge<A: SpongeAPI, I: List> {
     api: A,
     acc: A::Acc,
@@ -65,7 +117,7 @@ impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
     }
 }
 
-impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
+impl<A: SpongeAPI, I: Normalize + ToIOPattern> ExtraSponge<A, I> {
     // Note this gives us the normalization of I!
     fn start(self, domain_separator: Option<u32>) -> ExtraSponge<A, Norm<I>> {
         // TODO add the constraint to link `Norm<I>` to argument p of self.api.start
@@ -92,8 +144,7 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
         U: ArraySize<A::Value>,
         I: Consume<Squeeze<U>>,
     {
-        let values = self
-            .api
+        self.api
             .squeeze(U::to_u32(), harray.as_mut_slice(), &mut self.acc);
         self.repattern()
     }

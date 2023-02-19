@@ -4,8 +4,10 @@ pub use typenum;
 use typenum::{Bit, Diff, Sum, UInt, Unsigned, U0};
 
 /// Our two alternatives for the IOPattern, i.e. these are IOWords
-/// Note the phantom type avoids allocating actual data
+/// Note the phantom type avoids allocating actual data.
+#[derive(Debug)]
 pub struct Absorb<N>(PhantomData<N>);
+#[derive(Debug)]
 pub struct Squeeze<N>(PhantomData<N>);
 
 /// Our trait for common treatment of both patterns
@@ -37,9 +39,11 @@ impl List for Nil {
     }
 }
 
+#[derive(Debug)]
 pub struct Cons<Item, Next: List> {
     _phantom: PhantomData<(Item, Next)>,
 }
+#[derive(Debug)]
 pub struct Nil;
 
 #[macro_export]
