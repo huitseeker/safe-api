@@ -73,9 +73,6 @@ impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
 /// see https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
 /// Slightly modified so that the squeeze function takes an argument as a mutable slice
 /// instead of returning a Vec.
-///
-/// Note: the API's trait is not the most ergonomic, as it is unclear what the receiver type for it should be.
-/// We nonetheless work with it here, as it is the API that is used in Neptune.
 pub trait SpongeAPI {
     type Acc;
     type Value;
@@ -83,13 +80,12 @@ pub trait SpongeAPI {
     /// Optional `domain_separator` defaults to 0
     fn start(&mut self, p: IOPattern, domain_separator: Option<u32>, acc: &mut Self::Acc);
     fn absorb(&mut self, length: u32, elements: &[Self::Value], acc: &mut Self::Acc);
-    fn squeeze(
-        &mut self,
-        length: u32,
-        elements: &mut [Self::Value],
-        acc: &mut Self::Acc,
-    ) -> Vec<Self::Value>;
-    fn finish(&mut self, _: &mut Self::Acc) -> Result<(), Error>;
+    // This differs from the original API in that it takes a mutable slice instead of returning a Vec.
+    fn squeeze(&mut self, length: u32, elements: &mut [Self::Value], acc: &mut Self::Acc);
+    // This differs from the original API in that if does not take a final Self::Acc argument.
+    // It would not be impossible to do it without this change, but it would require depending on something other
+    // than the Drop impelementation to detect the ExtraSponge going out of scope (e.g. MIRAI).
+    fn finish(&mut self) -> Result<(), Error>;
 }
 
 /// This is a slightly extended generic NewType wrapper around the original SpongeAPI.
@@ -97,16 +93,14 @@ pub trait SpongeAPI {
 #[derive(Debug)]
 pub struct ExtraSponge<A: SpongeAPI, I: List> {
     api: A,
-    acc: A::Acc,
-    current_pattern: I,
+    _current_pattern: I,
 }
 
 impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
-    pub fn new(api: A, acc: A::Acc) -> ExtraSponge<A, I> {
+    pub fn new(api: A) -> ExtraSponge<A, I> {
         ExtraSponge {
             api,
-            acc,
-            current_pattern: I::unit(),
+            _current_pattern: I::unit(),
         }
     }
 
@@ -132,40 +126,56 @@ where
     // Create a sponge with the IOPatten given as a type parameter.
     // Note that we do not require this pattern to be normalized - instead the constructor will return
     // an ExtraSPonge with a normalized pattern.
-    fn start(domain_separator: Option<u32>, api: A, acc: A::Acc) -> ExtraSponge<A, Norm<I>> {
+    pub fn start(
+        domain_separator: Option<u32>,
+        api: A,
+        acc: &mut A::Acc,
+    ) -> ExtraSponge<A, Norm<I>> {
         // Note: we not directly creating the state on I but on its normalization, satifying the requirement
         // in subsequent calls to absorb and squeeze - the pattern, by then, will be in normalized form and these calls
         // will maintain it as such.
-        let mut extra_sponge: ExtraSponge<A, Norm<I>> = ExtraSponge::new(api, acc);
-        extra_sponge.api.start(
-            Norm::<I>::to_iopattern(),
-            domain_separator,
-            &mut extra_sponge.acc,
-        );
+        let mut extra_sponge: ExtraSponge<A, Norm<I>> = ExtraSponge::new(api);
+        extra_sponge
+            .api
+            .start(Norm::<I>::to_iopattern(), domain_separator, acc);
         extra_sponge
     }
 }
 
 impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
-    fn absorb<U>(mut self, harray: Array<A::Value, U>) -> ExtraSponge<A, Use<I, Absorb<U>>>
+    /// This pass-through function is used to absorb elements in the sponge.
+    /// It calls the underlying API's absorb function, and then returns a new ExtraSponge
+    /// but a successful method dispatch to this implementation gaurantees the call is coherent with
+    /// the IOPattern.
+    pub fn absorb<U>(
+        mut self,
+        harray: Array<A::Value, U>,
+        acc: &mut A::Acc,
+    ) -> ExtraSponge<A, Use<I, Absorb<U>>>
     where
         U: ArraySize<A::Value>,
         I: Consume<Absorb<U>>,
     {
-        self.api
-            .absorb(U::to_u32(), &harray.as_slice(), &mut self.acc);
+        self.api.absorb(U::to_u32(), &harray.as_slice(), acc);
         self.repattern()
     }
 }
 
 impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
-    fn squeeze<U>(mut self, harray: &mut Array<A::Value, U>) -> ExtraSponge<A, Use<I, Squeeze<U>>>
+    /// This pass-through function is used to squeeze elements out of the sponge.
+    /// It calls the underlying API's squeeze function, and then returns a new ExtraSponge
+    /// but a successful method dispatch to this implementation gaurantees the call is coherent with
+    /// the IOPattern.
+    pub fn squeeze<U>(
+        mut self,
+        harray: &mut Array<A::Value, U>,
+        acc: &mut A::Acc,
+    ) -> ExtraSponge<A, Use<I, Squeeze<U>>>
     where
         U: ArraySize<A::Value>,
         I: Consume<Squeeze<U>>,
     {
-        self.api
-            .squeeze(U::to_u32(), harray.as_mut_slice(), &mut self.acc);
+        self.api.squeeze(U::to_u32(), harray.as_mut_slice(), acc);
         self.repattern()
     }
 }
@@ -176,7 +186,7 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
         if I::is_empty() {
             self.api
-                .finish(&mut self.acc)
+                .finish()
                 .expect("SpongeAPI invariant violated: finish failed on an empty IO pattern");
         } else {
             panic!("SpongeAPI invariant violated: forgot to empty IO pattern before dropping it");
@@ -186,3 +196,51 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
 
 #[cfg(test)]
 mod unit_tests;
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+
+    use super::*;
+
+    struct BasicSponge {
+        elements: Vec<u8>,
+        pattern: VecDeque<SpongeOp>,
+    }
+
+    // This is a very simple implementation of SpongeAPI, which is used in the tests.
+    // It is not meant to be used in production. It is spectacularly not API-compliant
+    impl SpongeAPI for BasicSponge {
+        type Acc = Vec<u8>;
+        type Value = u8;
+
+        fn start(&mut self, p: IOPattern, _: Option<u32>, acc: &mut Vec<u8>) {
+            self.elements = acc.clone();
+            self.pattern = p.0.into_iter().collect();
+        }
+
+        fn absorb(&mut self, length: u32, elements: &[u8], acc: &mut Vec<u8>) {
+            assert_eq!(length as usize, elements.len());
+            let word = self.pattern.pop_front().unwrap();
+            assert_eq!(word, SpongeOp::Absorb(length));
+            self.elements.extend_from_slice(elements);
+        }
+
+        fn squeeze(&mut self, length: u32, elements: &mut [u8], acc: &mut Vec<u8>) {
+            assert_eq!(length as usize, elements.len());
+            let word = self.pattern.pop_front().unwrap();
+            assert_eq!(word, SpongeOp::Squeeze(length));
+
+            for i in 0..length as usize {
+                elements[i] = self.elements[i];
+            }
+        }
+
+        fn finish(&mut self) -> Result<(), Error> {
+            self.pattern
+                .is_empty()
+                .then(|| ())
+                .ok_or(Error::ParameterUsageMismatch)
+        }
+    }
+}
