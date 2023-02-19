@@ -29,7 +29,7 @@ pub enum Error {
 }
 
 /// The SpongeWord type is lifted straight from the Neptune codebase.
-/// See https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
+/// See `<https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs>`
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SpongeOp {
     /// The absorb operation.
@@ -89,7 +89,7 @@ impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
 }
 
 /// This is the SpongeAPI trait as you can find it in Neptune,
-/// see https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
+/// see `<https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs>`
 /// Slightly modified so that the squeeze function takes an argument as a mutable slice
 /// instead of returning a Vec.
 pub trait SpongeAPI {
@@ -189,7 +189,7 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
         U: ArraySize<A::Value>,
         I: Consume<Absorb<U>>,
     {
-        self.api.absorb(U::to_u32(), &harray.as_slice(), acc);
+        self.api.absorb(U::to_u32(), harray.as_slice(), acc);
         self.repattern()
     }
 }
