@@ -1,27 +1,14 @@
-error[E0412]: cannot find type `U3` in this scope
- --> src/unit_tests/compilation/consume.rs:9:27
+error[E0277]: the trait bound `UTerm: PrivateSub<UInt<UTerm, B1>>` is not satisfied
+ --> src/unit_tests/compilation/consume.rs:9:9
   |
 9 |         Use<iopat![Absorb<U3>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
-  |                           ^^
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `PrivateSub<UInt<UTerm, B1>>` is not implemented for `UTerm`
   |
- ::: $OUT_DIR[typenum]/consts.rs
-  |
-  |     pub type U0 = UTerm;
-  |     ----------- similarly named type alias `U0` defined here
-  |
-help: a type alias with a similar name exists
-   |
-9  |         Use<iopat![Absorb<U0>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
-   |                           ~~
-help: consider importing this type alias
-   |
-1  | use typenum::U3;
-   |
-
-warning: unused imports: `U0`, `U5`
- --> src/unit_tests/compilation/consume.rs:4:15
-  |
-4 | use typenum::{U0, U1, U5, U6};
-  |               ^^      ^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
+  = help: the following other types implement trait `PrivateSub<Rhs>`:
+            <UInt<Ul, B0> as PrivateSub<UInt<Ur, B0>>>
+            <UInt<Ul, B0> as PrivateSub<UInt<Ur, B1>>>
+            <UInt<Ul, B1> as PrivateSub<UInt<Ur, B0>>>
+            <UInt<Ul, B1> as PrivateSub<UInt<Ur, B1>>>
+  = note: required for `UInt<UTerm, B1>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
+  = note: required for `UInt<UInt<UTerm, B1>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
+  = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<...>, ...>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`

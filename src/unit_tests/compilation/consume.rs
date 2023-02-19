@@ -1,7 +1,7 @@
 use extra_safe::iopat;
 use extra_safe::traits::{Absorb, Squeeze, Use};
 use typenum::assert_type_eq;
-use typenum::{U0, U1, U5, U6};
+use typenum::{U1, U3, U6};
 
 fn main() {
     // Running out of Use allowance!
