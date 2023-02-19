@@ -122,9 +122,9 @@ pub struct ExtraSponge<A: SpongeAPI, I: List> {
 }
 
 impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
-    /// This is the constructor for the ExtraSponge type: a simple wrapper, which needs type annotations
-    /// to be used properly
-    pub fn new(api: A) -> ExtraSponge<A, I> {
+    // This is the internal constructor for the ExtraSponge type: a simple wrapper, which needs type annotations
+    // to be used properly. This should remain private.
+    fn new(api: A) -> ExtraSponge<A, I> {
         ExtraSponge {
             api,
             _current_pattern: I::unit(),
@@ -222,9 +222,4 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
 }
 
 #[cfg(test)]
-mod unit_tests;
-
-#[cfg(test)]
-mod tests {
-   
-}
+pub mod unit_tests;

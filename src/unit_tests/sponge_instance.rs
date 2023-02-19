@@ -2,7 +2,8 @@ use std::collections::VecDeque;
 
 use crate::{Error, IOPattern, SpongeAPI, SpongeOp};
 
-struct BasicSponge {
+#[allow(unreachable_pub)]
+pub struct BasicSponge {
     elements: Vec<u8>,
     pattern: VecDeque<SpongeOp>,
 }
