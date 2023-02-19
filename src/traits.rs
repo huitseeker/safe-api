@@ -30,7 +30,7 @@ impl<N: Unsigned> IOWord for Squeeze<N> {}
 
 /// Type-level HList, specializable to IOWord
 /// using  a sealed trait
-/// See e.g. https://hackage.haskell.org/package/heterolist (or frunk) for
+/// See e.g. `<https://hackage.haskell.org/package/heterolist>` (or frunk) for
 /// what a HList is.
 pub trait List {
     /// This is an inhabitant of the List type corresponding to the
