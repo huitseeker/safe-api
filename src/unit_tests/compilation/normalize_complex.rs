@@ -1,7 +1,7 @@
 use extra_safe::iopat;
 use extra_safe::traits::{Absorb, Norm, Squeeze};
 use typenum::assert_type_eq;
-use typenum::{U0, U2, U3, U8};
+use typenum::{U0, U2, U3, U6};
 
 fn main() {
     assert_type_eq!(

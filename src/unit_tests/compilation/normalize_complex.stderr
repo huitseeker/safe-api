@@ -1,27 +1,10 @@
-error[E0412]: cannot find type `U6` in this scope
- --> src/unit_tests/compilation/normalize_complex.rs:9:35
-  |
-9 |         iopat![Absorb<U2>, Absorb<U6>]
-  |                                   ^^
-  |
- ::: $OUT_DIR[typenum]/consts.rs
-  |
-  |     pub type U0 = UTerm;
-  |     ----------- similarly named type alias `U0` defined here
-  |
-help: a type alias with a similar name exists
+error[E0277]: the trait bound `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>>, Nil>: Same<Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B0>>, Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>, Nil>>>` is not satisfied
+  --> src/unit_tests/compilation/normalize_complex.rs:7:5
    |
-9  |         iopat![Absorb<U2>, Absorb<U0>]
-   |                                   ~~
-help: consider importing this type alias
+7  | /     assert_type_eq!(
+8  | |         Norm<iopat![Absorb<U2>, Squeeze<U0>, Absorb<U3>, Absorb<U3>]>,
+9  | |         iopat![Absorb<U2>, Absorb<U6>]
+10 | |     );
+   | |_____^ the trait `Same<Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B0>>, Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>, Nil>>>` is not implemented for `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>>, Nil>`
    |
-1  | use typenum::U6;
-   |
-
-warning: unused import: `U8`
- --> src/unit_tests/compilation/normalize_complex.rs:4:27
-  |
-4 | use typenum::{U0, U2, U3, U8};
-  |                           ^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
+   = note: this error originates in the macro `assert_type_eq` (in Nightly builds, run with -Z macro-backtrace for more info)
