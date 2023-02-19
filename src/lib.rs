@@ -1,6 +1,6 @@
 pub mod traits;
 
-use hybrid_array::{Array, ArraySize};
+use hybrid_array::{Array, ArrayOps, ArraySize};
 use traits::{Absorb, Consume, IOWord, List, Norm, Normalize, Squeeze, Use};
 
 #[derive(Debug)]
@@ -26,7 +26,12 @@ pub trait SpongeAPI {
     /// Optional `domain_separator` defaults to 0
     fn start(&mut self, p: IOPattern, domain_separator: Option<u32>, _: &mut Self::Acc);
     fn absorb(&mut self, length: u32, elements: &[Self::Value], acc: &mut Self::Acc);
-    fn squeeze(&mut self, length: u32, acc: &mut Self::Acc) -> Vec<Self::Value>;
+    fn squeeze(
+        &mut self,
+        length: u32,
+        elements: &mut [Self::Value],
+        acc: &mut Self::Acc,
+    ) -> Vec<Self::Value>;
     fn finish(&mut self, _: &mut Self::Acc) -> Result<(), Error>;
 }
 
@@ -87,8 +92,9 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
         U: ArraySize<A::Value>,
         I: Consume<Squeeze<U>>,
     {
-        let values = self.api.squeeze(U::to_u32(), &mut self.acc);
-        todo!("copy values into harray");
+        let values = self
+            .api
+            .squeeze(U::to_u32(), harray.as_mut_slice(), &mut self.acc);
         self.repattern()
     }
 }
