@@ -60,6 +60,7 @@ impl ToIOPattern for Nil {
 }
 impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
     fn to_iopattern() -> IOPattern {
+        // TODO: avoid the quadratic cost of prepending here
         let mut v = T::to_iopattern().0;
         v.push(<Item as ToSpongeOp>::to_sponge_op());
         IOPattern(v)
@@ -107,11 +108,12 @@ impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
     // an ExtraSponge<A, J> where J is another pattern.
     // Safety: this should stay private to ensure it is only used in the below.
     fn repattern<J: List>(self) -> ExtraSponge<A, J> {
-        // Mandated by the existence of a Drop implementation which we cannot move out of
+        // Mandated by the existence of a Drop implementation which we cannot move out of.
         // Safe since the only type that differs between source and destination is a Phantom
         let res =
             unsafe { std::mem::transmute_copy::<ExtraSponge<A, I>, ExtraSponge<A, J>>(&self) };
-        // lets us bypass the drop logic,
+        // This is really important, as it lets us bypass the drop logic, which would blow up in a
+        // non-empty Sponge.
         std::mem::forget(self);
         res
     }
@@ -164,8 +166,13 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
 
 impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
-        // TODO: blow up unless I == Nil
-        todo!()
+        if I::is_empty() {
+            self.api
+                .finish(&mut self.acc)
+                .expect("SpongeAPI invariant violated: finish failed on an empty IO pattern");
+        } else {
+            panic!("SpongeAPI invariant violated: forgot to empty IO pattern before dropping it");
+        }
     }
 }
 

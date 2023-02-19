@@ -23,6 +23,9 @@ pub trait List {
     /// This is an inhabitant of the List type corresponding to the
     /// Self type
     fn unit() -> Self;
+
+    /// THis returns whether the list is empty
+    fn is_empty() -> bool;
 }
 
 impl<Item: IOWord, Next: List> List for Cons<Item, Next> {
@@ -31,11 +34,17 @@ impl<Item: IOWord, Next: List> List for Cons<Item, Next> {
             _phantom: PhantomData,
         }
     }
+    fn is_empty() -> bool {
+        false
+    }
 }
 
 impl List for Nil {
     fn unit() -> Self {
         Nil
+    }
+    fn is_empty() -> bool {
+        true
     }
 }
 
