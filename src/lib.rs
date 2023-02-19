@@ -13,6 +13,8 @@
 
 pub mod traits;
 
+use std::iter;
+
 use hybrid_array::{Array, ArraySize};
 use traits::{Absorb, Cons, Consume, IOWord, List, Nil, Norm, Normalize, Squeeze, Use};
 use typenum::Unsigned;
@@ -55,7 +57,7 @@ impl<U: Unsigned> ToSpongeOp for Squeeze<U> {
 }
 
 /// The type describing the I/O pattern of a sponge, at a term level.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IOPattern(pub Vec<SpongeOp>);
 
 // TODO : convert SpongeOp -> IOWord using macros
@@ -76,9 +78,11 @@ impl ToIOPattern for Nil {
 impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
     fn to_iopattern() -> IOPattern {
         // TODO: avoid the quadratic cost of prepending here
-        let mut v = T::to_iopattern().0;
-        v.push(<Item as ToSpongeOp>::to_sponge_op());
-        IOPattern(v)
+        IOPattern(
+            iter::once(<Item as ToSpongeOp>::to_sponge_op())
+                .chain(T::to_iopattern().0)
+                .collect(),
+        )
     }
 }
 
@@ -216,6 +220,7 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
                 .finish()
                 .expect("SpongeAPI invariant violated: finish failed on an empty IO pattern");
         } else {
+            // TODO: find a better behavior than a panic, here: this induces aborts!
             panic!("SpongeAPI invariant violated: forgot to empty IO pattern before dropping it");
         }
     }
@@ -223,3 +228,24 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
 
 #[cfg(test)]
 pub mod unit_tests;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use typenum::{U3, U5};
+
+    #[test]
+    fn test_to_sponge_op() {
+        assert_eq!(Absorb::<U5>::to_sponge_op(), SpongeOp::Absorb(5));
+        assert_eq!(Squeeze::<U5>::to_sponge_op(), SpongeOp::Squeeze(5));
+    }
+
+    #[test]
+    fn test_to_iopattern() {
+        assert_eq!(Nil::to_iopattern(), IOPattern(Vec::default()));
+        assert_eq!(
+            <iopat![Absorb::<U5>, Squeeze<U3>]>::to_iopattern(),
+            IOPattern(vec![SpongeOp::Absorb(5), SpongeOp::Squeeze(3)])
+        );
+    }
+}
