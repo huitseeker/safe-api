@@ -16,6 +16,8 @@ pub enum Error {
     ParameterUsageMismatch,
 }
 
+/// The SpongeWord type is lifted straight from the Neptune codebase.
+/// See https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SpongeOp {
     Absorb(u32),
@@ -68,8 +70,12 @@ impl<Item: ToSpongeOp, T: List + ToIOPattern> ToIOPattern for Cons<Item, T> {
 }
 
 /// This is the SpongeAPI trait as you can find it in Neptune,
-/// slightly modified so that the squeeze function takes an argument as a mutable slice
+/// see https://github.com/filecoin-project/neptune/blob/master/src/sponge/api.rs
+/// Slightly modified so that the squeeze function takes an argument as a mutable slice
 /// instead of returning a Vec.
+///
+/// Note: the API's trait is not the most ergonomic, as it is unclear what the receiver type for it should be.
+/// We nonetheless work with it here, as it is the API that is used in Neptune.
 pub trait SpongeAPI {
     type Acc;
     type Value;
@@ -164,6 +170,8 @@ impl<A: SpongeAPI, I: Normalize> ExtraSponge<A, I> {
     }
 }
 
+/// This implementation of drop is called automatically when the ExtraSponge drops out of scope.
+/// It checks that the IOPattern is empty by then, and if it is not, it panics. Otherwise, it calls finalize.
 impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
     fn drop(&mut self) {
         if I::is_empty() {
