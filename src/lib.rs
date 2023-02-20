@@ -16,6 +16,7 @@
 pub mod traits;
 
 use std::iter;
+use std::marker::PhantomData;
 
 use hybrid_array::{Array, ArraySize};
 use traits::{Absorb, Cons, Consume, IOWord, List, Nil, Norm, Normalize, Squeeze, Use};
@@ -124,7 +125,7 @@ pub trait SpongeAPI {
 #[derive(Debug)]
 pub struct ExtraSponge<A: SpongeAPI, I: List> {
     api: A,
-    _current_pattern: I,
+    _current_pattern: PhantomData<I>,
 }
 
 impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
@@ -133,7 +134,7 @@ impl<A: SpongeAPI, I: List> ExtraSponge<A, I> {
     fn new(api: A) -> ExtraSponge<A, I> {
         ExtraSponge {
             api,
-            _current_pattern: I::unit(),
+            _current_pattern: PhantomData,
         }
     }
 
