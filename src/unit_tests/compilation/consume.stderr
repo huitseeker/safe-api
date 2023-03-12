@@ -11,4 +11,4 @@ error[E0277]: the trait bound `UTerm: PrivateSub<UInt<UTerm, B1>>` is not satisf
             <UInt<Ul, B1> as PrivateSub<UInt<Ur, B1>>>
   = note: required for `UInt<UTerm, B1>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
   = note: required for `UInt<UInt<UTerm, B1>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
-  = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<...>, ...>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+  = note: required for `Cons<Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<Squeeze<UInt<UTerm, B1>>, Cons<Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
