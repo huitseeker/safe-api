@@ -22,17 +22,16 @@ pub struct Absorb<N>(PhantomData<N>);
 pub struct Squeeze<N>(PhantomData<N>);
 
 /// Our trait for common treatment of both patterns
-// TODO: make a sealed trait
-pub trait IOWord {}
+pub trait IOWord: private::Sealed {}
 
 impl<N: Unsigned> IOWord for Absorb<N> {}
 impl<N: Unsigned> IOWord for Squeeze<N> {}
 
-/// Type-level HList, specializable to IOWord
+/// Type-level HList, specialized to IOWord
 /// using  a sealed trait
 /// See e.g. `<https://hackage.haskell.org/package/heterolist>` (or frunk) for
 /// what a HList is.
-pub trait List {
+pub trait List: private::Sealed {
     /// This is an inhabitant of the List type corresponding to the
     /// Self type
     fn unit() -> Self;
@@ -223,6 +222,17 @@ where
     Cons<Squeeze<Diff<N, UInt<U, B>>>, T>: Normalize,
 {
     type Output = Norm<Cons<Squeeze<Diff<N, UInt<U, B>>>, T>>;
+}
+
+// Seal the traits so that the above defines admissible implementations of sealed traits
+mod private {
+    pub trait Sealed {}
+
+    impl<N> Sealed for super::Absorb<N> {}
+    impl<N> Sealed for super::Squeeze<N> {}
+
+    impl Sealed for super::Nil {}
+    impl<H, T: super::List> Sealed for super::Cons<H, T> {}
 }
 
 #[cfg(test)]
