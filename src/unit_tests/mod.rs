@@ -10,6 +10,8 @@ use crate::{
 mod sponge_instance;
 use sponge_instance::BasicSponge;
 
+// This pattern-matches the type checker output, so works only on stable
+#[rustversion::stable]
 #[test]
 fn illegal_api_uses() {
     let t = trybuild::TestCases::new();

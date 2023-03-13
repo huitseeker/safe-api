@@ -15,3 +15,4 @@ typenum = "1.16.0"
 
 [dev-dependencies]
 trybuild = {version = "1.0.77", features = ["diff"]}
+rustversion = "1.0"
