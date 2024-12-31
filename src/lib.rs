@@ -230,6 +230,7 @@ impl<A: SpongeAPI, I: List> Drop for ExtraSponge<A, I> {
 }
 
 #[cfg(test)]
+/// Unit tests for the Sponge API.
 pub mod unit_tests;
 
 #[cfg(test)]
