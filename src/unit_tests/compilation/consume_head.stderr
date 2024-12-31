@@ -4,13 +4,34 @@ error[E0277]: cannot subtract `B1` from `UInt<UTerm, B0>`
 9 |         Use<iopat![Absorb<U5>, Squeeze<U0>, Absorb<U1>], Absorb<U6>>,
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `UInt<UTerm, B0> - B1`
   |
-  = help: the trait `Sub<B1>` is not implemented for `UInt<UTerm, B0>`
+  = help: the trait `Sub<B1>` is not implemented for `UInt<UTerm, B0>`, which is required by `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UTerm>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>: Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
   = help: the following other types implement trait `Sub<Rhs>`:
-            <UInt<U, B0> as Sub<B1>>
-            <UInt<U, B> as Sub<B0>>
-            <UInt<UInt<U, B>, B1> as Sub<B1>>
-            <UInt<UTerm, B1> as Sub<B1>>
-            <UInt<Ul, Bl> as Sub<Ur>>
+            `UInt<U, B0>` implements `Sub<B1>`
+            `UInt<U, B>` implements `Sub<B0>`
+            `UInt<UInt<U, B>, B1>` implements `Sub<B1>`
+            `UInt<UTerm, B1>` implements `Sub<B1>`
+            `UInt<Ul, Bl>` implements `Sub<Ur>`
   = note: required for `UInt<UInt<UTerm, B1>, B0>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
   = note: required for `UInt<UInt<UInt<UTerm, B1>, B0>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
-  = note: required for `Cons<Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<Squeeze<UTerm>, Cons<Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+  = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UTerm>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+
+error[E0277]: cannot subtract `B1` from `UInt<UTerm, B0>`
+  --> src/unit_tests/compilation/consume_head.rs:8:5
+   |
+8  | /     assert_type_eq!(
+9  | |         Use<iopat![Absorb<U5>, Squeeze<U0>, Absorb<U1>], Absorb<U6>>,
+10 | |         Nil
+11 | |     );
+   | |_____^ no implementation for `UInt<UTerm, B0> - B1`
+   |
+   = help: the trait `Sub<B1>` is not implemented for `UInt<UTerm, B0>`, which is required by `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UTerm>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>: Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+   = help: the following other types implement trait `Sub<Rhs>`:
+             `UInt<U, B0>` implements `Sub<B1>`
+             `UInt<U, B>` implements `Sub<B0>`
+             `UInt<UInt<U, B>, B1>` implements `Sub<B1>`
+             `UInt<UTerm, B1>` implements `Sub<B1>`
+             `UInt<Ul, Bl>` implements `Sub<Ur>`
+   = note: required for `UInt<UInt<UTerm, B1>, B0>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
+   = note: required for `UInt<UInt<UInt<UTerm, B1>, B0>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
+   = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UTerm>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+   = note: this error originates in the macro `assert_type_eq` (in Nightly builds, run with -Z macro-backtrace for more info)
