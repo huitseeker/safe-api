@@ -30,18 +30,15 @@ env:
 
 jobs:
   test:
-    name: Test Rust ${{matrix.toolchain}} on ${{matrix.os}}
+    name: Test Rust on ${{matrix.os}}
     runs-on: ${{matrix.os}}-latest
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable, nightly]
         os: [ubuntu]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{matrix.toolchain}}
+      - uses: dtolnay/rust-toolchain@stable
       - uses: taiki-e/install-action@nextest
       # make sure benches don't bit-rot
       - name: build benches
@@ -58,10 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install minimal nightly with clippy and rustfmt
-        uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
       - name: Clippy
         uses: actions-rs/cargo@v1
@@ -74,10 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install minimal nightly with clipy
-        uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt
       - name: rustfmt
         uses: actions-rs/cargo@v1
