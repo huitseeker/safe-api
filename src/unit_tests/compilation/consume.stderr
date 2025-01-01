@@ -2,13 +2,32 @@ error[E0277]: the trait bound `UTerm: PrivateSub<UInt<UTerm, B1>>` is not satisf
  --> src/unit_tests/compilation/consume.rs:9:9
   |
 9 |         Use<iopat![Absorb<U3>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `PrivateSub<UInt<UTerm, B1>>` is not implemented for `UTerm`
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `PrivateSub<UInt<UTerm, B1>>` is not implemented for `UTerm`, which is required by `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UTerm, B1>>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>: Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
   |
   = help: the following other types implement trait `PrivateSub<Rhs>`:
-            <UInt<Ul, B0> as PrivateSub<UInt<Ur, B0>>>
-            <UInt<Ul, B0> as PrivateSub<UInt<Ur, B1>>>
-            <UInt<Ul, B1> as PrivateSub<UInt<Ur, B0>>>
-            <UInt<Ul, B1> as PrivateSub<UInt<Ur, B1>>>
+            `UInt<Ul, B0>` implements `PrivateSub<UInt<Ur, B0>>`
+            `UInt<Ul, B0>` implements `PrivateSub<UInt<Ur, B1>>`
+            `UInt<Ul, B1>` implements `PrivateSub<UInt<Ur, B0>>`
+            `UInt<Ul, B1>` implements `PrivateSub<UInt<Ur, B1>>`
   = note: required for `UInt<UTerm, B1>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
   = note: required for `UInt<UInt<UTerm, B1>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
-  = note: required for `Cons<Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<Squeeze<UInt<UTerm, B1>>, Cons<Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+  = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UTerm, B1>>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+
+error[E0277]: the trait bound `UTerm: PrivateSub<UInt<UTerm, B1>>` is not satisfied
+  --> src/unit_tests/compilation/consume.rs:8:5
+   |
+8  | /     assert_type_eq!(
+9  | |         Use<iopat![Absorb<U3>, Squeeze<U1>, Absorb<U1>], Absorb<U6>>,
+10 | |         iopat![Squeeze<U1>, Absorb<U1>]
+11 | |     );
+   | |_____^ the trait `PrivateSub<UInt<UTerm, B1>>` is not implemented for `UTerm`, which is required by `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UTerm, B1>>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>: Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+   |
+   = help: the following other types implement trait `PrivateSub<Rhs>`:
+             `UInt<Ul, B0>` implements `PrivateSub<UInt<Ur, B0>>`
+             `UInt<Ul, B0>` implements `PrivateSub<UInt<Ur, B1>>`
+             `UInt<Ul, B1>` implements `PrivateSub<UInt<Ur, B0>>`
+             `UInt<Ul, B1>` implements `PrivateSub<UInt<Ur, B1>>`
+   = note: required for `UInt<UTerm, B1>` to implement `PrivateSub<UInt<UInt<UTerm, B1>, B1>>`
+   = note: required for `UInt<UInt<UTerm, B1>, B1>` to implement `Sub<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>`
+   = note: required for `Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UTerm, B1>>, Cons<extra_safe::traits::Absorb<UInt<UTerm, B1>>, Nil>>>` to implement `Consume<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B1>, B0>>>`
+   = note: this error originates in the macro `assert_type_eq` (in Nightly builds, run with -Z macro-backtrace for more info)

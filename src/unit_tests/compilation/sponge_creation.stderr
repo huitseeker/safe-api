@@ -8,7 +8,7 @@ error[E0308]: mismatched types
 83 | |             basic_sponge,
 84 | |             &mut start_acc,
 85 | |         );
-   | |_________^ expected struct `UTerm`, found struct `UInt`
+   | |_________^ expected `UTerm`, found `UInt<UTerm, B1>`
    |
-   = note: expected struct `ExtraSponge<BasicSponge, Cons<Absorb<UInt<UInt<UTerm, B1>, B0>>, Cons<Absorb<UInt<..., ...>>, ...>>>`
-              found struct `ExtraSponge<_, Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UInt<UTerm, B1>, B1>>, Nil>>>`
+   = note: expected struct `ExtraSponge<BasicSponge, Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B0>>, Cons<extra_safe::traits::Absorb<UInt<UInt<UTerm, B1>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UInt<UTerm, B1>, B1>>, Nil>>>>`
+              found struct `ExtraSponge<BasicSponge, Cons<extra_safe::traits::Absorb<UInt<UInt<UInt<UTerm, B1>, B0>, B1>>, Cons<extra_safe::traits::Squeeze<UInt<UInt<UTerm, B1>, B1>>, Nil>>>`
